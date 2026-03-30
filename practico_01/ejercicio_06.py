@@ -45,7 +45,7 @@ def numeros_al_final_sorted(lista: List[Union[float, str]]) -> List[Union[float,
     """Re-escribir utilizando la función sorted con una custom key.
     Referencia: https://docs.python.org/3/library/functions.html#sorted
     """
-    pass # Completar
+    return sorted(lista, key=lambda x: type(x) in (int, float))
 
 
 # NO MODIFICAR - INICIO
@@ -60,7 +60,9 @@ def numeros_al_final_filter(lista: List[Union[float, str]]) -> List[Union[float,
     """CHALLENGE OPCIONAL - Re-escribir utilizando la función filter.
     Referencia: https://docs.python.org/3/library/functions.html#filter
     """
-    pass # Completar
+    strings = list(filter(lambda x: type(x) == str, lista))
+    numeros = list(filter(lambda x: type(x) in (int, float), lista))
+    return strings + numeros
 
 
 # NO MODIFICAR - INICIO
@@ -74,7 +76,14 @@ if __name__ == "__main__":
 
 def numeros_al_final_recursivo(lista: List[Union[float, str]]) -> List[Union[float, str]]:
     """CHALLENGE OPCIONAL - Re-escribir de forma recursiva."""
-    pass # Completar
+    if not lista:
+        return []
+    cabeza, *cola = lista
+    resultado = numeros_al_final_recursivo(cola)
+    if type(cabeza) in (int, float):
+        i = next((i for i, x in enumerate(resultado) if type(x) in (int, float)), len(resultado))
+        return resultado[:i] + [cabeza] + resultado[i:]
+    return [cabeza] + resultado
 
 
 # NO MODIFICAR - INICIO
