@@ -29,10 +29,10 @@ def tiene_pares_for_else(numeros: Iterable[int]) -> bool:
     """
     for i in numeros:
         if i % 2 == 0:
-            return True
-        break
+            break
     else:
         return False
+    return True
 
 
 # NO MODIFICAR - INICIO
