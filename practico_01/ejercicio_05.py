@@ -16,6 +16,7 @@ def multiplicar_basico(numeros: Iterable[float]) -> float:
         tiene_elementos = True
     return producto if tiene_elementos else 0
 
+
 # NO MODIFICAR - INICIO
 assert multiplicar_basico([1, 2, 3, 4]) == 24
 assert multiplicar_basico([2, 5]) == 10
