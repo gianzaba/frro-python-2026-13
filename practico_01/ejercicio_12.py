@@ -23,7 +23,6 @@ def combinar_basico(nombres: List[str], precios: List[float]) -> Tuple[Any]:
     for i in nombres:
         array.append((i, precios[nombres.index(i)]))
     return tuple(array)
-        
 
 
 # NO MODIFICAR - INICIO

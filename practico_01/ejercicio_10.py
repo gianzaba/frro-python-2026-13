@@ -1,6 +1,5 @@
 """For-Else, Any."""
 
-from ejercicio_11 import numeros
 from typing import Iterable
 
 

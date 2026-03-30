@@ -13,9 +13,8 @@ def suma_cubo_pares_for(numeros: Iterable[int]) -> int:
     suma = 0
     for i in numeros:
         if i % 2 == 0:
-            suma = suma + (i*i*i)
+            suma = suma + (i * i * i)
     return suma
-
 
 
 # NO MODIFICAR - INICIO
@@ -33,7 +32,7 @@ def suma_cubo_pares_sum_list(numeros: Iterable[int]) -> int:
     Referencia: https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions
     Referencia: https://docs.python.org/3/library/functions.html#sum
     """
-    return sum([i*i*i for i in numeros if i % 2 == 0])
+    return sum([i * i * i for i in numeros if i % 2 == 0])
 
 
 # NO MODIFICAR - INICIO
@@ -49,7 +48,7 @@ def suma_cubo_pares_sum_gen(numeros: Iterable[int]) -> int:
     y la función sum.
     Referencia: https://docs.python.org/3/reference/expressions.html#generator-expressions
     """
-    return sum(i*i*i for i in numeros if i % 2 == 0)
+    return sum(i * i * i for i in numeros if i % 2 == 0)
 
 
 # NO MODIFICAR - INICIO
