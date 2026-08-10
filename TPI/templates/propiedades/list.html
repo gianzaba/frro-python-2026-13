@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block title %}Propiedades{% endblock %}
+
+{% block content %}
+<header>
+    <div>
+        <h1>Gestión de Propiedades</h1>
+        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Catálogo de inmuebles en alquiler o venta</p>
+    </div>
+    <a href="{{ url_for('views.propiedad_crear') }}" class="btn btn-primary">➕ Registrar Propiedad</a>
+</header>
+
+<div class="card">
+    <h2>Listado de Propiedades</h2>
+    
+    <div class="table-container">
+        {% if propiedades %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Dirección</th>
+                    <th>Tipo</th>
+                    <th>Zona</th>
+                    <th>Estado</th>
+                    <th>Propietario</th>
+                    <th>Agente Asignado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in propiedades %}
+                <tr>
+                    <td>{{ item.propiedad.id }}</td>
+                    <td style="font-weight: 500;">{{ item.propiedad.direccion }}</td>
+                    <td>{{ item.propiedad.tipo }}</td>
+                    <td>{{ item.propiedad.zona }}</td>
+                    <td>
+                        <span class="badge badge-{{ item.propiedad.estado }}">
+                            {{ item.propiedad.estado }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if item.propietario %}
+                            {{ item.propietario.nombre_completo }}
+                        {% else %}
+                            <span style="color: var(--text-secondary);">Sin propietario</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.agente_asignado %}
+                            <span style="color: #818cf8; font-weight: 500;">👤 {{ item.agente_asignado.nombre_completo }}</span>
+                        {% else %}
+                            <span style="color: var(--text-secondary); font-style: italic;">Sin asignar</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="{{ url_for('views.propiedad_detalle', id_propiedad=item.propiedad.id) }}" class="btn btn-secondary btn-sm">🔍 Detalles</a>
+                            {% if item.propiedad.estado == 'disponible' %}
+                                <a href="{{ url_for('views.propiedad_asignar', id_propiedad=item.propiedad.id) }}" class="btn btn-primary btn-sm">👤 Asignar</a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No hay propiedades registradas actualmente.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

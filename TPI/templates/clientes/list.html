@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block title %}Clientes{% endblock %}
+
+{% block content %}
+<header>
+    <div>
+        <h1>Gestión de Clientes</h1>
+        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Clientes registrados que solicitan contratos en la plataforma</p>
+    </div>
+    <a href="{{ url_for('views.cliente_crear') }}" class="btn btn-primary">➕ Registrar Cliente</a>
+</header>
+
+<div class="card">
+    <h2>Listado de Clientes</h2>
+    
+    <div class="table-container">
+        {% if clientes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Documento</th>
+                    <th>Nombre Completo</th>
+                    <th>Domicilio</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in clientes %}
+                <tr>
+                    <td>{{ c.id }}</td>
+                    <td>{{ c.tipo_doc }} {{ c.nro_doc }}</td>
+                    <td style="font-weight: 500;">{{ c.nombre_completo }}</td>
+                    <td>{{ c.domicilio }}</td>
+                    <td>{{ c.telefono }}</td>
+                    <td>{{ c.email }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No hay clientes registrados en el sistema.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

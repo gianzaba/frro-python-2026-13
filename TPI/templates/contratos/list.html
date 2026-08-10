@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}Contratos{% endblock %}
+
+{% block content %}
+<header>
+    <div>
+        <h1>Gestión de Contratos</h1>
+        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Contratos de alquiler y venta gestionados por los agentes</p>
+    </div>
+    <a href="{{ url_for('views.contrato_crear') }}" class="btn btn-primary">📝 Nueva Solicitud de Contrato</a>
+</header>
+
+<div class="card">
+    <h2>Listado de Contratos y Solicitudes</h2>
+    
+    <div class="table-container">
+        {% if contratos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>N° Contrato</th>
+                    <th>Fecha Solicitud</th>
+                    <th>Propiedad</th>
+                    <th>Cliente</th>
+                    <th>Agente Realizador</th>
+                    <th>Estado</th>
+                    <th>Fecha Contrato</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in contratos %}
+                <tr>
+                    <td>#{{ item.contrato.nro_contrato }}</td>
+                    <td>{{ item.contrato.fecha_solicitud.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if item.propiedad %}
+                            <div style="font-weight: 500;">{{ item.propiedad.direccion }}</div>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">Tipo: {{ item.propiedad.tipo }}</span>
+                        {% else %}
+                            <span style="color: var(--text-secondary);">Propiedad eliminada</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.cliente.nombre_completo }}</td>
+                    <td>👤 {{ item.agente.nombre_completo }}</td>
+                    <td>
+                        <span class="badge badge-{{ item.contrato.estado }}">
+                            {{ item.contrato.estado }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if item.contrato.fecha_contrato %}
+                            {{ item.contrato.fecha_contrato.strftime('%Y-%m-%d') }}
+                        {% else %}
+                            <span style="color: var(--text-secondary); font-style: italic;">Pendiente de firma</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.contrato.estado == 'solicitado' %}
+                        <form action="{{ url_for('views.contrato_firmar', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-success btn-sm">✍️ Firmar Contrato</button>
+                        </form>
+                        {% else %}
+                        <span style="color: var(--text-secondary); font-size: 0.9rem;">Sin acciones</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No hay contratos registrados actualmente.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block title %}Propietarios{% endblock %}
+
+{% block content %}
+<header>
+    <div>
+        <h1>Gestión de Propietarios</h1>
+        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Dueños de las propiedades comercializadas por la inmobiliaria</p>
+    </div>
+    <a href="{{ url_for('views.propietario_crear') }}" class="btn btn-primary">➕ Registrar Propietario</a>
+</header>
+
+<div class="card">
+    <h2>Listado de Propietarios</h2>
+    
+    <div class="table-container">
+        {% if propietarios %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Documento</th>
+                    <th>Nombre Completo</th>
+                    <th>Domicilio</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in propietarios %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td>{{ p.tipo_doc }} {{ p.nro_doc }}</td>
+                    <td style="font-weight: 500;">{{ p.nombre_completo }}</td>
+                    <td>{{ p.domicilio }}</td>
+                    <td>{{ p.telefono }}</td>
+                    <td>{{ p.email }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No hay propietarios registrados en el sistema.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

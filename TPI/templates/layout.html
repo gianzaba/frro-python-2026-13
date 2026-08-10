@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}InmoGestión{% endblock %} - Inmobiliaria Digital</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span>✦</span> InmoGestión
+            </div>
+            
+            {% if logged_in %}
+            <ul class="nav-links">
+                <li class="{% if request.path == '/' or request.path == '/dashboard' %}active{% endif %}">
+                    <a href="{{ url_for('views.dashboard') }}">📊 Dashboard</a>
+                </li>
+                <li class="{% if request.path.startswith('/propiedades') %}active{% endif %}">
+                    <a href="{{ url_for('views.propiedades_list') }}">🏠 Propiedades</a>
+                </li>
+                <li class="{% if request.path.startswith('/clientes') %}active{% endif %}">
+                    <a href="{{ url_for('views.clientes_list') }}">👥 Clientes</a>
+                </li>
+                <li class="{% if request.path.startswith('/propietarios') %}active{% endif %}">
+                    <a href="{{ url_for('views.propietarios_list') }}">🔑 Propietarios</a>
+                </li>
+                <li class="{% if request.path.startswith('/contratos') %}active{% endif %}">
+                    <a href="{{ url_for('views.contratos_list') }}">📜 Contratos</a>
+                </li>
+                <li class="{% if request.path.startswith('/finanzas') %}active{% endif %}">
+                    <a href="{{ url_for('views.finanzas_dashboard') }}">💵 Finanzas</a>
+                </li>
+            </ul>
+            
+            <div class="user-panel">
+                <div class="user-info">
+                    <span class="user-label">Agente Conectado:</span>
+                    <div class="user-name">{{ current_username }}</div>
+                </div>
+                <a href="{{ url_for('views.logout') }}" class="btn btn-secondary btn-sm">🚪 Cerrar Sesión</a>
+            </div>
+            {% else %}
+            <ul class="nav-links">
+                <li class="active">
+                    <a href="{{ url_for('views.login') }}">🔑 Iniciar Sesión</a>
+                </li>
+            </ul>
+            {% endif %}
+        </aside>
+
+        <!-- Main Content Panel -->
+        <main class="main-content">
+            <!-- Flash Message Alerts -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-container">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Section Content -->
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
