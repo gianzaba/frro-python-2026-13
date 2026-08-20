@@ -126,6 +126,58 @@
         {% endif %}
     </div>
 
+    <!-- Ranking KPI: Propiedades con más tiempo vacantes -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="font-size: 1.3rem;">⏳ Ranking: Propiedades con más Tiempo Vacantes</h2>
+            <span class="badge badge-solicitado" style="font-size: 0.85rem;">KPI Inactividad</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Propiedades disponibles calculadas por días transcurridos desde su fecha de alta o disponibilidad.
+        </p>
+
+        {% if stats.ranking_vacantes %}
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Propiedad</th>
+                        <th>Tipo</th>
+                        <th>Zona</th>
+                        <th>Propietario</th>
+                        <th>Fecha Disponibilidad</th>
+                        <th>Días Inactiva</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in stats.ranking_vacantes %}
+                    <tr>
+                        <td><strong>{{ r.propiedad.direccion }}</strong></td>
+                        <td>{{ r.propiedad.tipo }}</td>
+                        <td>{{ r.propiedad.zona }}</td>
+                        <td>{{ r.propietario.nombre_completo if r.propietario else 'N/A' }}</td>
+                        <td>{{ r.propiedad.fecha_disponibilidad.strftime('%d/%m/%Y') if r.propiedad.fecha_disponibilidad else 'N/A' }}</td>
+                        <td>
+                            <span class="badge {% if r.dias_vacante > 60 %}badge-solicitado{% else %}badge-activo{% endif %}" style="font-size: 0.95rem; font-weight: 700;">
+                                {{ r.dias_vacante }} días
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('views.propiedad_detalle', id_propiedad=r.propiedad.id) }}" class="btn btn-sm btn-secondary">Ver Detalle</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success" style="padding: 1.2rem; text-align: center; border-radius: 12px; background: rgba(52, 211, 153, 0.08); color: #34d399;">
+            ✔ No hay propiedades vacantes registradas en este momento.
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Quick Operations and Summary Counts -->
     <div style="display: flex; flex-direction: column; gap: 1.5rem;">
         <div class="card">

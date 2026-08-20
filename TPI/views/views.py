@@ -7,9 +7,12 @@ from flask import (
     session,
     flash,
     abort,
+    Response,
 )
 from functools import wraps
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
 
 # Import Business Controller
 import business.controller as controller
@@ -32,14 +35,33 @@ def login_required(f):
     return decorated_function
 
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        agente_id = session.get("agente_id")
+        if not agente_id or not controller.es_administrador(agente_id):
+            flash(
+                "Acceso denegado: Se requieren permisos de Administrador para realizar esta acción.",
+                "danger",
+            )
+            return redirect(url_for("views.dashboard"))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 # --- Context Processor for Global Variables ---
 
 
 @views_blueprint.context_processor
 def inject_user():
+    agente_id = session.get("agente_id")
+    es_admin = controller.es_administrador(agente_id) if agente_id else False
     return {
         "logged_in": "agente_id" in session,
         "current_username": session.get("agente_name", ""),
+        "es_admin": es_admin,
+        "agente_rol": session.get("agente_rol", "Estándar"),
     }
 
 
@@ -72,8 +94,9 @@ def login():
         if agente:
             session["agente_id"] = agente.id
             session["agente_name"] = agente.nombre_completo
+            session["agente_rol"] = agente.rol
             flash(
-                f"¡Bienvenido, {agente.nombre}! Has iniciado sesión.",
+                f"¡Bienvenido, {agente.nombre}! Has iniciado sesión ({agente.rol}).",
                 "success",
             )
             return redirect(url_for("views.dashboard"))
@@ -127,6 +150,9 @@ def dashboard():
         else 100.0
     )
 
+    # Ranking de propiedades con más tiempo vacantes (KPI)
+    ranking_vacantes = controller.obtener_ranking_propiedades_vacantes()
+
     stats = {
         "total_propiedades": total_props,
         "disponibles": props_avail,
@@ -144,6 +170,7 @@ def dashboard():
         "contratos_atrasados": stats_fin["contratos_atrasados"],
         "periodo": stats_fin["periodo"],
         "cobro_eficiencia": round(cobro_eficiencia, 1),
+        "ranking_vacantes": ranking_vacantes,
     }
 
     return render_template(
@@ -401,6 +428,18 @@ def contrato_crear():
                 comision_porcentaje = (
                     request.form.get("comision_porcentaje", type=float) or 10.0
                 )
+                tipo_contrato = request.form.get("tipo_contrato", "Alquiler")
+
+                # Manejo de archivo adjunto (contrato físico / garantías PDF o imágenes)
+                file = request.files.get("documento_respaldo")
+                ruta_documento = None
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    upload_dir = os.path.join("static", "uploads")
+                    os.makedirs(upload_dir, exist_ok=True)
+                    filepath = os.path.join(upload_dir, f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}")
+                    file.save(filepath)
+                    ruta_documento = filepath
 
                 controller.solicitar_contrato(
                     id_cliente,
@@ -408,13 +447,15 @@ def contrato_crear():
                     id_propiedad,
                     monto,
                     comision_porcentaje,
+                    tipo_contrato=tipo_contrato,
+                    ruta_documento_respaldo=ruta_documento,
                 )
                 flash("Solicitud de contrato creada exitosamente.", "success")
                 return redirect(url_for("views.contratos_list"))
             except ValueError as e:
                 flash(str(e), "danger")
-            except Exception:
-                flash("Error al procesar la solicitud.", "danger")
+            except Exception as e:
+                flash(f"Error al procesar la solicitud: {e}", "danger")
 
     return render_template(
         "contratos/form.html", clientes=clientes, propiedades=available_props
@@ -511,10 +552,14 @@ def pago_inquilino_crear():
 
 @views_blueprint.route("/finanzas/liquidar", methods=["POST"])
 @login_required
+@admin_required
 def liquidar_mes():
     mes = request.form.get("mes", "").strip()
+    agente_id = session.get("agente_id")
     try:
-        liquidaciones = controller.generar_liquidaciones_mes(mes)
+        liquidaciones = controller.generar_liquidaciones_mes(
+            mes, id_agente_solicitante=agente_id
+        )
         if liquidaciones:
             flash(
                 f"Se generaron {len(liquidaciones)} liquidaciones de propietarios para el período {mes}.",
@@ -525,7 +570,7 @@ def liquidar_mes():
                 f"No hay nuevos pagos cobrados por liquidar para el período {mes}.",
                 "warning",
             )
-    except ValueError as e:
+    except (ValueError, PermissionError) as e:
         flash(str(e), "danger")
     except Exception:
         flash("Error al procesar las liquidaciones.", "danger")
@@ -537,15 +582,41 @@ def liquidar_mes():
     "/finanzas/liquidaciones/<int:id_pago>/pagar", methods=["POST"]
 )
 @login_required
+@admin_required
 def liquidacion_pagar(id_pago: int):
+    agente_id = session.get("agente_id")
     try:
-        controller.registrar_transferencia_propietario(id_pago)
+        controller.registrar_transferencia_propietario(
+            id_pago, id_agente_solicitante=agente_id
+        )
         flash(
             "Transferencia al propietario registrada exitosamente.", "success"
         )
-    except ValueError as e:
+    except (ValueError, PermissionError) as e:
         flash(str(e), "danger")
     except Exception:
         flash("Error al registrar la transferencia.", "danger")
 
     return redirect(url_for("views.finanzas_dashboard"))
+
+
+@views_blueprint.route("/finanzas/exportar/<tipo_reporte>", methods=["GET"])
+@login_required
+@admin_required
+def finanzas_exportar(tipo_reporte: str):
+    agente_id = session.get("agente_id")
+    try:
+        csv_data = controller.exportar_reporte_financiero_csv(
+            tipo_reporte, id_agente_solicitante=agente_id
+        )
+        filename = f"reporte_{tipo_reporte}_{datetime.now().strftime('%Y%m%d')}.csv"
+        return Response(
+            csv_data,
+            mimetype="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            },
+        )
+    except (ValueError, PermissionError) as e:
+        flash(str(e), "danger")
+        return redirect(url_for("views.finanzas_dashboard"))

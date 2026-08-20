@@ -17,7 +17,7 @@
         REGLA DE NEGOCIO: El agente que realiza el contrato debe ser el asignado actualmente a la propiedad seleccionada. Solo se listan propiedades que cumplen esta condición y están disponibles.
     </p>
     
-    <form action="{{ url_for('views.contrato_crear') }}" method="POST">
+    <form action="{{ url_for('views.contrato_crear') }}" method="POST" enctype="multipart/form-data">
         <div class="form-grid">
             <div class="form-group form-group-full">
                 <label for="id_cliente">Cliente Solicitante</label>
@@ -51,6 +51,16 @@
                     ⚠️ No hay propiedades disponibles con agentes asignados actualmente. Asigna un agente a una propiedad primero.
                 </div>
                 {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="tipo_contrato">Tipo de Operación</label>
+                <select id="tipo_contrato" name="tipo_contrato" required>
+                    <option value="Alquiler" selected>Alquiler</option>
+                    <option value="Compraventa">Compraventa</option>
+                </select>
+            </div>
+
             <div class="form-group">
                 <label for="monto">Monto Mensual / Precio total ($)</label>
                 <input type="number" id="monto" name="monto" step="0.01" min="0" placeholder="Ej. 150000" required>
@@ -59,6 +69,12 @@
             <div class="form-group">
                 <label for="comision_porcentaje">Porcentaje de Comisión (%)</label>
                 <input type="number" id="comision_porcentaje" name="comision_porcentaje" step="0.1" min="0" max="100" value="10.0" required>
+            </div>
+
+            <div class="form-group form-group-full">
+                <label for="documento_respaldo">Documento de Respaldo (PDF, Imagen de Garantías/Contrato)</label>
+                <input type="file" id="documento_respaldo" name="documento_respaldo" accept=".pdf,.png,.jpg,.jpeg">
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.3rem;">Opcional: Adjunta copia digitalizada de las garantías o contrato físico.</small>
             </div>
         </div>
         

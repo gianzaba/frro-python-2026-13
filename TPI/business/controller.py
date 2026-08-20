@@ -33,6 +33,16 @@ def autenticar_agente(email: str, password: str) -> Optional[AgenteBO]:
     return None
 
 
+def es_administrador(id_agente: Optional[int]) -> bool:
+    """
+    Verifica si el agente especificado tiene el rol de Administrador.
+    """
+    if not id_agente:
+        return False
+    agente = db.get_agente_by_id(id_agente)
+    return agente is not None and agente.rol == "Administrador"
+
+
 def registrar_agente(
     nombre: str,
     apellido: str,
@@ -44,9 +54,10 @@ def registrar_agente(
     nro_doc: str,
     domicilio: str,
     telefono: str,
+    rol: str = "Estándar",
 ) -> AgenteBO:
     """
-    Registra un nuevo agente con contraseña encriptada.
+    Registra un nuevo agente con contraseña encriptada y asignación de rol ("Estándar" o "Administrador").
     """
     existing = db.get_agente_by_email(email)
     if existing:
@@ -65,6 +76,7 @@ def registrar_agente(
         contrasegna_hash=hash_pwd,
         cuil=cuil,
         matricula=matricula,
+        rol=rol,
     )
     return db.save_agente(bo)
 
@@ -133,9 +145,10 @@ def registrar_propiedad(
     zona: str,
     id_propietario: int,
     estado: str = "disponible",
+    fecha_disponibilidad: Optional[date] = None,
 ) -> PropiedadBO:
     """
-    Registra una propiedad para la venta o alquiler.
+    Registra una propiedad para la venta o alquiler con su fecha de disponibilidad.
     """
     # Verificar que exista el propietario
     prop = db.get_propietario_by_id(id_propietario)
@@ -149,6 +162,7 @@ def registrar_propiedad(
         zona=zona,
         estado=estado,
         id_propietario=id_propietario,
+        fecha_disponibilidad=fecha_disponibilidad or date.today(),
     )
     return db.save_propiedad(bo)
 
@@ -208,10 +222,12 @@ def solicitar_contrato(
     id_propiedad: int,
     monto: float = 0.0,
     comision_porcentaje: float = 10.0,
+    tipo_contrato: str = "Alquiler",
+    ruta_documento_respaldo: Optional[str] = None,
     fecha_solicitud: Optional[date] = None,
 ) -> ContratoBO:
     """
-    Crea una solicitud de contrato.
+    Crea una solicitud de contrato especificando tipo (Alquiler/Compraventa) y documento de respaldo.
     REGLA DE NEGOCIO 3: El agente que realiza el contrato debe estar asignado a la propiedad.
     """
     cliente = db.get_cliente_by_id(id_cliente)
@@ -243,6 +259,8 @@ def solicitar_contrato(
         id_propiedad=id_propiedad,
         monto=monto,
         comision_porcentaje=comision_porcentaje,
+        tipo_contrato=tipo_contrato,
+        ruta_documento_respaldo=ruta_documento_respaldo,
     )
     return db.save_contrato(bo)
 
@@ -381,14 +399,55 @@ def registrar_pago_inquilino(
     return db.save_pago_inquilino(bo)
 
 
+def calcular_dias_vacante(propiedad: PropiedadBO) -> int:
+    """
+    Calcula el tiempo que una propiedad lleva inactiva / vacante ("tiempo sin alquilar" o "tiempo sin vender")
+    restando la fecha actual con la fecha_disponibilidad de la propiedad.
+    """
+    if not propiedad or not propiedad.fecha_disponibilidad:
+        return 0
+    hoy = date.today()
+    diferencia = (hoy - propiedad.fecha_disponibilidad).days
+    return max(0, diferencia)
+
+
+def obtener_ranking_propiedades_vacantes() -> List[dict]:
+    """
+    KPI para el Dashboard: Genera un ranking de propiedades vacantes (estado 'disponible')
+    ordenadas de mayor a menor tiempo sin alquilar/vender.
+    """
+    propiedades = db.list_propiedades()
+    disponibles = [p for p in propiedades if p.estado.lower() == "disponible"]
+
+    ranking = []
+    for prop in disponibles:
+        dias = calcular_dias_vacante(prop)
+        propietario = db.get_propietario_by_id(prop.id_propietario)
+        ranking.append(
+            {
+                "propiedad": prop,
+                "dias_vacante": dias,
+                "propietario": propietario,
+            }
+        )
+
+    ranking.sort(key=lambda x: x["dias_vacante"], reverse=True)
+    return ranking
+
+
 def generar_liquidaciones_mes(
     mes_correspondiente: str,
+    id_agente_solicitante: Optional[int] = None,
 ) -> List[PagoPropietarioBO]:
     """
-    REGLA DE NEGOCIO 4: Genera liquidaciones a propietarios para contratos de alquiler activos
-    solo si el inquilino ha registrado su pago para ese mes.
-    Evita la duplicación para el mismo período.
+    REGLA DE NEGOCIO 4: Genera liquidaciones a propietarios para contratos activos.
+    Verifica que el agente solicitante tenga el rol de 'Administrador'.
     """
+    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
+        raise PermissionError(
+            "Acceso denegado: Se requieren permisos de Administrador para generar liquidaciones."
+        )
+
     if (
         not mes_correspondiente
         or len(mes_correspondiente) != 7
@@ -445,11 +504,19 @@ def generar_liquidaciones_mes(
 
 
 def registrar_transferencia_propietario(
-    id_pago_propietario: int, fecha_pago: Optional[date] = None
+    id_pago_propietario: int,
+    fecha_pago: Optional[date] = None,
+    id_agente_solicitante: Optional[int] = None,
 ) -> PagoPropietarioBO:
     """
     Registra el pago de la liquidación transferido al propietario.
+    Verifica que el agente solicitante tenga el rol de 'Administrador'.
     """
+    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
+        raise PermissionError(
+            "Acceso denegado: Se requieren permisos de Administrador para registrar transferencias."
+        )
+
     payout = db.get_pago_propietario_by_id(id_pago_propietario)
     if not payout:
         raise ValueError("La liquidación especificada no existe.")
@@ -478,21 +545,66 @@ def obtener_pago_propietario(id_pago: int) -> Optional[PagoPropietarioBO]:
     return db.get_pago_propietario_by_id(id_pago)
 
 
+def exportar_reporte_financiero_csv(
+    tipo_reporte: str,
+    id_agente_solicitante: Optional[int] = None,
+) -> str:
+    """
+    Genera un archivo CSV con el reporte de cobros de inquilinos o transferencias a propietarios.
+    Valida que el agente solicitante tenga el rol de 'Administrador'.
+    """
+    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
+        raise PermissionError(
+            "Acceso denegado: Solo los Administradores pueden exportar reportes financieros."
+        )
+
+    lines = []
+    if tipo_reporte == "cobros":
+        lines.append("ID Pago,Fecha Pago,Nro Contrato,Cliente,Mes,Monto")
+        pagos = db.list_pagos_inquilinos()
+        for p in pagos:
+            c = db.get_contrato_by_id(p.nro_contrato)
+            cliente = db.get_cliente_by_id(c.id_cliente) if c else None
+            cliente_nombre = cliente.nombre_completo if cliente else "N/A"
+            lines.append(
+                f"{p.id},{p.fecha_pago},{p.nro_contrato},\"{cliente_nombre}\",{p.mes_correspondiente},{p.monto:.2f}"
+            )
+    elif tipo_reporte == "liquidaciones":
+        lines.append("ID Liquidacion,Período,Nro Contrato,Propietario,Monto Bruto,Comision,Monto Neto,Estado,Fecha Pago")
+        liquidaciones = db.list_pagos_propietarios()
+        for liq in liquidaciones:
+            prop = db.get_propietario_by_id(liq.id_propietario)
+            nombre_prop = prop.nombre_completo if prop else "N/A"
+            fecha_pago_str = liq.fecha_pago.strftime("%Y-%m-%d") if liq.fecha_pago else "Pendiente"
+            lines.append(
+                f"{liq.id},{liq.mes_correspondiente},{liq.nro_contrato},\"{nombre_prop}\",{liq.monto_bruto:.2f},{liq.comision:.2f},{liq.monto_neto:.2f},{liq.estado},{fecha_pago_str}"
+            )
+    else:
+        raise ValueError("Tipo de reporte no válido. Use 'cobros' o 'liquidaciones'.")
+
+    return "\n".join(lines)
+
+
 def obtener_estadisticas_financieras(
     id_propietario: Optional[int] = None,
     id_cliente: Optional[int] = None,
     mes: Optional[str] = None,
+    id_agente_solicitante: Optional[int] = None,
 ) -> dict:
     """
-    Calcula las estadísticas financieras para un período (mes AAAA-MM)
-    permitiendo filtrar opcionalmente por cliente o propietario.
+    Calcula las estadísticas financieras para un período.
+    Valida el rol de Administrador si se requiere consulta exclusiva.
     """
+    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
+        raise PermissionError(
+            "Acceso denegado: Se requieren permisos de Administrador para consultar estadísticas financieras."
+        )
+
     if not mes:
         mes = datetime.now().strftime("%Y-%m")
 
     contratos = db.list_contratos()
 
-    # Filtrar contratos por cliente o propietario si se especifican
     if id_cliente:
         contratos = [c for c in contratos if c.id_cliente == id_cliente]
     elif id_propietario:
@@ -524,7 +636,6 @@ def obtener_estadisticas_financieras(
                 {"contrato": c, "cliente": cliente, "propiedad": prop}
             )
 
-    # Filtrar y consolidar liquidaciones a propietarios
     liquidaciones = db.list_pagos_propietarios()
     if id_cliente:
         client_contract_nros = {

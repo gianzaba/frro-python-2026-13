@@ -12,12 +12,10 @@ import business.controller as controller  # noqa: E402
 @pytest.fixture(autouse=True)
 def setup_test_db():
     """
-    Initializes a fresh in-memory database for each test.
+    Initializes a fresh database for each test.
     """
-    db.init_db()
+    db.init_db(reset=True)
     yield
-    # Clean up (SQLite in-memory is cleared when connection closes,
-    # but we drop everything to be safe)
     db.Base.metadata.drop_all(bind=db.engine)
 
 

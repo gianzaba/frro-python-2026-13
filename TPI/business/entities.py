@@ -41,10 +41,18 @@ class Propietario(Persona):
 
 
 class Agente(Persona):
-    def __init__(self, cuil: str = "", matricula: str = "", *args, **kwargs):
+    def __init__(
+        self,
+        cuil: str = "",
+        matricula: str = "",
+        rol: str = "Estándar",
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.cuil = cuil
         self.matricula = matricula
+        self.rol = rol
 
 
 class Propiedad:
@@ -56,6 +64,7 @@ class Propiedad:
         zona: str = "",
         estado: str = "disponible",
         id_propietario: Optional[int] = None,
+        fecha_disponibilidad: Optional[date] = None,
     ):
         self.id = id
         self.direccion = direccion
@@ -63,6 +72,7 @@ class Propiedad:
         self.zona = zona
         self.estado = estado
         self.id_propietario = id_propietario
+        self.fecha_disponibilidad = fecha_disponibilidad or date.today()
 
 
 class Contrato:
@@ -77,6 +87,8 @@ class Contrato:
         id_propiedad: Optional[int] = None,
         monto: float = 0.0,
         comision_porcentaje: float = 10.0,
+        tipo_contrato: str = "Alquiler",
+        ruta_documento_respaldo: Optional[str] = None,
     ):
         self.nro_contrato = nro_contrato
         self.fecha_solicitud = fecha_solicitud or date.today()
@@ -87,6 +99,8 @@ class Contrato:
         self.id_propiedad = id_propiedad
         self.monto = monto
         self.comision_porcentaje = comision_porcentaje
+        self.tipo_contrato = tipo_contrato
+        self.ruta_documento_respaldo = ruta_documento_respaldo
 
 
 class AgenteAsignado:

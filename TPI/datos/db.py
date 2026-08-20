@@ -96,6 +96,7 @@ class AgenteTable(PersonaTable):
     id = Column(Integer, ForeignKey("persona.id"), primary_key=True)
     cuil = Column(String(20), unique=True, nullable=False)
     matricula = Column(String(50), unique=True, nullable=False)
+    rol = Column(String(50), default="Estándar", nullable=False)
 
     __mapper_args__ = {
         "polymorphic_identity": "agente",
@@ -111,7 +112,8 @@ class PropiedadTable(Base):
     zona = Column(String(100), nullable=False)
     estado = Column(
         String(50), default="disponible", nullable=False
-    )  # disponible, alquilado, vendido
+    )  # disponible, alquilada, vendida
+    fecha_disponibilidad = Column(Date, default=date.today, nullable=False)
     id_propietario = Column(
         Integer, ForeignKey("propietario.id"), nullable=False
     )
@@ -135,6 +137,8 @@ class ContratoTable(Base):
     id_propiedad = Column(Integer, ForeignKey("propiedad.id"), nullable=False)
     monto = Column(Numeric(12, 2), nullable=False, default=0.0)
     comision_porcentaje = Column(Numeric(5, 2), nullable=False, default=10.0)
+    tipo_contrato = Column(String(50), default="Alquiler", nullable=False)  # Alquiler / Compraventa
+    ruta_documento_respaldo = Column(String(500), nullable=True)
 
     cliente = relationship("ClienteTable", foreign_keys=[id_cliente])
     agente = relationship("AgenteTable", foreign_keys=[id_agente])
@@ -198,8 +202,58 @@ class PagoPropietarioTable(Base):
 # --- Database Schema Creation ---
 
 
-def init_db():
-    Base.metadata.create_all(bind=engine)
+def init_db(reset: bool = False):
+    def recreate_all():
+        try:
+            if engine.dialect.name == "postgresql":
+                with engine.begin() as conn:
+                    from sqlalchemy import text
+                    conn.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
+            else:
+                Base.metadata.drop_all(bind=engine)
+        except Exception:
+            pass
+        Base.metadata.create_all(bind=engine)
+
+    if reset:
+        recreate_all()
+
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        required_tables = [
+            "persona",
+            "agente",
+            "propietario",
+            "cliente",
+            "propiedad",
+            "contrato",
+            "agente_asignado",
+            "pago_inquilino",
+            "pago_propietario",
+        ]
+        
+        needs_recreate = False
+        for tbl in required_tables:
+            if tbl not in existing_tables:
+                needs_recreate = True
+                break
+        
+        if not needs_recreate and "agente" in existing_tables:
+            cols = [c["name"] for c in inspector.get_columns("agente")]
+            if "rol" not in cols:
+                needs_recreate = True
+                
+        if not needs_recreate and "propiedad" in existing_tables:
+            cols = [c["name"] for c in inspector.get_columns("propiedad")]
+            if "fecha_disponibilidad" not in cols:
+                needs_recreate = True
+
+        if needs_recreate:
+            recreate_all()
+    except Exception as e:
+        print(f"Schema verification note: {e}")
 
 
 # --- Conversions: DB Models -> Business Objects ---
@@ -254,6 +308,7 @@ def to_bo_agente(db_obj: Optional[AgenteTable]) -> Optional[AgenteBO]:
         contrasegna_hash=db_obj.contrasegna_hash,
         cuil=db_obj.cuil,
         matricula=db_obj.matricula,
+        rol=getattr(db_obj, "rol", "Estándar") or "Estándar",
     )
 
 
@@ -267,6 +322,7 @@ def to_bo_propiedad(db_obj: Optional[PropiedadTable]) -> Optional[PropiedadBO]:
         zona=db_obj.zona,
         estado=db_obj.estado,
         id_propietario=db_obj.id_propietario,
+        fecha_disponibilidad=getattr(db_obj, "fecha_disponibilidad", date.today()),
     )
 
 
@@ -283,6 +339,8 @@ def to_bo_contrato(db_obj: Optional[ContratoTable]) -> Optional[ContratoBO]:
         id_propiedad=db_obj.id_propiedad,
         monto=float(db_obj.monto),
         comision_porcentaje=float(db_obj.comision_porcentaje),
+        tipo_contrato=getattr(db_obj, "tipo_contrato", "Alquiler") or "Alquiler",
+        ruta_documento_respaldo=getattr(db_obj, "ruta_documento_respaldo", None),
     )
 
 
@@ -510,6 +568,7 @@ def save_agente(bo: AgenteBO) -> AgenteBO:
                 db_obj.email = bo.email
                 db_obj.cuil = bo.cuil
                 db_obj.matricula = bo.matricula
+                db_obj.rol = bo.rol
                 if bo.contrasegna_hash:
                     db_obj.contrasegna_hash = bo.contrasegna_hash
         else:
@@ -524,6 +583,7 @@ def save_agente(bo: AgenteBO) -> AgenteBO:
                 contrasegna_hash=bo.contrasegna_hash,
                 cuil=bo.cuil,
                 matricula=bo.matricula,
+                rol=bo.rol,
             )
             db.add(db_obj)
         db.commit()
@@ -561,6 +621,7 @@ def save_propiedad(bo: PropiedadBO) -> PropiedadBO:
                 db_obj.zona = bo.zona
                 db_obj.estado = bo.estado
                 db_obj.id_propietario = bo.id_propietario
+                db_obj.fecha_disponibilidad = bo.fecha_disponibilidad
         else:
             db_obj = PropiedadTable(
                 direccion=bo.direccion,
@@ -568,6 +629,7 @@ def save_propiedad(bo: PropiedadBO) -> PropiedadBO:
                 zona=bo.zona,
                 estado=bo.estado,
                 id_propietario=bo.id_propietario,
+                fecha_disponibilidad=bo.fecha_disponibilidad or date.today(),
             )
             db.add(db_obj)
         db.commit()
@@ -608,6 +670,8 @@ def save_contrato(bo: ContratoBO) -> ContratoBO:
                 db_obj.id_propiedad = bo.id_propiedad
                 db_obj.monto = bo.monto
                 db_obj.comision_porcentaje = bo.comision_porcentaje
+                db_obj.tipo_contrato = bo.tipo_contrato
+                db_obj.ruta_documento_respaldo = bo.ruta_documento_respaldo
         else:
             db_obj = ContratoTable(
                 fecha_solicitud=bo.fecha_solicitud,
@@ -618,6 +682,8 @@ def save_contrato(bo: ContratoBO) -> ContratoBO:
                 id_propiedad=bo.id_propiedad,
                 monto=bo.monto,
                 comision_porcentaje=bo.comision_porcentaje,
+                tipo_contrato=bo.tipo_contrato,
+                ruta_documento_respaldo=bo.ruta_documento_respaldo,
             )
             db.add(db_obj)
         db.commit()

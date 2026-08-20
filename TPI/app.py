@@ -56,8 +56,9 @@ def seed_data():
                 nro_doc="33445566",
                 domicilio="Av. Pellegrini 250, Rosario",
                 telefono="3415556677",
+                rol="Administrador",
             )
-            print(f"Agent created: {agente.email} (pwd: adminpassword)")
+            print(f"Admin Agent created: {agente.email} (pwd: adminpassword)")
     except Exception as e:
         print(f"Error seeding Agent: {e}")
 

@@ -12,9 +12,9 @@ import business.controller as controller  # noqa: E402
 @pytest.fixture(autouse=True)
 def setup_test_db():
     """
-    Initializes a fresh in-memory database for each test.
+    Initializes a fresh database for each test.
     """
-    db.init_db()
+    db.init_db(reset=True)
     yield
     db.Base.metadata.drop_all(bind=db.engine)
 

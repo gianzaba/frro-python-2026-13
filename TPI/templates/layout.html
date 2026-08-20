@@ -3,14 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}InmoGestión{% endblock %} - Inmobiliaria Digital</title>
+    <title>{% block title %}InmoGestión{% endblock %} - Backoffice Inmobiliario B2B</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
     <div class="app-container">
+        <!-- Mobile Topbar Header -->
+        <div class="mobile-topbar">
+            <div class="brand" style="margin-bottom: 0;">
+                <span>✦</span> InmoGestión B2B
+            </div>
+            <button class="mobile-toggle-btn" onclick="toggleSidebar()">☰</button>
+        </div>
+
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="brand">
                 <span>✦</span> InmoGestión
             </div>
@@ -40,7 +48,10 @@
             <div class="user-panel">
                 <div class="user-info">
                     <span class="user-label">Agente Conectado:</span>
-                    <div class="user-name">{{ current_username }}</div>
+                    <div class="user-name">
+                        {{ current_username }}
+                        <span class="badge {% if es_admin %}badge-activo{% else %}badge-solicitado{% endif %}">{{ agente_rol }}</span>
+                    </div>
                 </div>
                 <a href="{{ url_for('views.logout') }}" class="btn btn-secondary btn-sm">🚪 Cerrar Sesión</a>
             </div>
@@ -72,6 +83,15 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <script>
+    function toggleSidebar() {
+        var sb = document.getElementById('sidebar');
+        if (sb) {
+            sb.classList.toggle('active');
+        }
+    }
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
