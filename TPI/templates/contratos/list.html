@@ -20,24 +20,28 @@
             <thead>
                 <tr>
                     <th>N° Contrato</th>
-                    <th>Fecha Solicitud</th>
+                    <th>Tipo</th>
                     <th>Propiedad</th>
                     <th>Cliente</th>
                     <th>Agente Realizador</th>
+                    <th>Comisión Agente</th>
                     <th>Estado</th>
-                    <th>Fecha Contrato</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in contratos %}
                 <tr>
-                    <td>#{{ item.contrato.nro_contrato }}</td>
-                    <td>{{ item.contrato.fecha_solicitud.strftime('%Y-%m-%d') }}</td>
+                    <td><strong>#{{ item.contrato.nro_contrato }}</strong></td>
+                    <td>
+                        <span class="badge badge-secondary" style="text-transform: capitalize;">
+                            {{ item.contrato.tipo_contrato }}
+                        </span>
+                    </td>
                     <td>
                         {% if item.propiedad %}
                             <div style="font-weight: 500;">{{ item.propiedad.direccion }}</div>
-                            <span style="font-size: 0.8rem; color: var(--text-secondary);">Tipo: {{ item.propiedad.tipo }}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">Zona: {{ item.propiedad.zona }}</span>
                         {% else %}
                             <span style="color: var(--text-secondary);">Propiedad eliminada</span>
                         {% endif %}
@@ -45,25 +49,28 @@
                     <td>{{ item.cliente.nombre_completo }}</td>
                     <td>👤 {{ item.agente.nombre_completo }}</td>
                     <td>
+                        <div><strong>${{ "%.2f"|format(item.contrato.monto_comision_agente) }}</strong></div>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">({{ item.contrato.comision_porcentaje }}%)</span>
+                    </td>
+                    <td>
                         <span class="badge badge-{{ item.contrato.estado }}">
                             {{ item.contrato.estado }}
                         </span>
                     </td>
                     <td>
-                        {% if item.contrato.fecha_contrato %}
-                            {{ item.contrato.fecha_contrato.strftime('%Y-%m-%d') }}
-                        {% else %}
-                            <span style="color: var(--text-secondary); font-style: italic;">Pendiente de firma</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if item.contrato.estado == 'solicitado' %}
-                        <form action="{{ url_for('views.contrato_firmar', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;">
-                            <button type="submit" class="btn btn-success btn-sm">✍️ Firmar Contrato</button>
-                        </form>
-                        {% else %}
-                        <span style="color: var(--text-secondary); font-size: 0.9rem;">Sin acciones</span>
-                        {% endif %}
+                        <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+                            <a href="{{ url_for('views.contrato_detalle', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-secondary btn-sm" title="Ver y editar cláusulas o comisión">
+                                📄 Cláusulas
+                            </a>
+                            <a href="{{ url_for('views.contrato_imprimir', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-primary btn-sm" target="_blank" title="Imprimir contrato listo para firmar">
+                                🖨️ Imprimir
+                            </a>
+                            {% if item.contrato.estado == 'solicitado' %}
+                            <form action="{{ url_for('views.contrato_firmar', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-success btn-sm">✍️ Firmar</button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -75,3 +82,4 @@
     </div>
 </div>
 {% endblock %}
+

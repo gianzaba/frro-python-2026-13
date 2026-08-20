@@ -478,6 +478,107 @@ def contrato_firmar(nro_contrato: int):
     return redirect(url_for("views.contratos_list"))
 
 
+@views_blueprint.route("/contratos/<int:nro_contrato>/detalle")
+@login_required
+def contrato_detalle(nro_contrato: int):
+    try:
+        detalles = controller.obtener_detalles_contrato_completo(nro_contrato)
+        return render_template("contratos/detalle.html", **detalles)
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(url_for("views.contratos_list"))
+
+
+@views_blueprint.route(
+    "/contratos/<int:nro_contrato>/clausulas/agregar", methods=["POST"]
+)
+@login_required
+def clausula_agregar(nro_contrato: int):
+    titulo = request.form.get("titulo", "").strip()
+    contenido = request.form.get("contenido", "").strip()
+    try:
+        controller.agregar_clausula_contrato(nro_contrato, titulo, contenido)
+        flash("Cláusula agregada correctamente al contrato.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(
+        url_for("views.contrato_detalle", nro_contrato=nro_contrato)
+    )
+
+
+@views_blueprint.route(
+    "/contratos/<int:nro_contrato>/clausulas/<int:id_clausula>/editar",
+    methods=["POST"],
+)
+@login_required
+def clausula_editar(nro_contrato: int, id_clausula: int):
+    titulo = request.form.get("titulo", "").strip()
+    contenido = request.form.get("contenido", "").strip()
+    try:
+        controller.modificar_clausula_contrato(id_clausula, titulo, contenido)
+        flash("Cláusula modificada exitosamente.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(
+        url_for("views.contrato_detalle", nro_contrato=nro_contrato)
+    )
+
+
+@views_blueprint.route(
+    "/contratos/<int:nro_contrato>/clausulas/<int:id_clausula>/eliminar",
+    methods=["POST"],
+)
+@login_required
+def clausula_eliminar(nro_contrato: int, id_clausula: int):
+    try:
+        controller.eliminar_clausula_contrato(id_clausula)
+        flash("Cláusula eliminada del contrato.", "info")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(
+        url_for("views.contrato_detalle", nro_contrato=nro_contrato)
+    )
+
+
+@views_blueprint.route(
+    "/contratos/<int:nro_contrato>/comision/actualizar", methods=["POST"]
+)
+@login_required
+def contrato_comision_actualizar(nro_contrato: int):
+    comision_porcentaje = request.form.get("comision_porcentaje", type=float)
+    if comision_porcentaje is None:
+        flash("Debe ingresar un porcentaje de comisión válido.", "danger")
+        return redirect(
+            url_for("views.contrato_detalle", nro_contrato=nro_contrato)
+        )
+
+    try:
+        controller.actualizar_comision_contrato(
+            nro_contrato, comision_porcentaje
+        )
+        flash(
+            f"Porcentaje de comisión del agente actualizado a {comision_porcentaje}%.",
+            "success",
+        )
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(
+        url_for("views.contrato_detalle", nro_contrato=nro_contrato)
+    )
+
+
+@views_blueprint.route("/contratos/<int:nro_contrato>/imprimir")
+@login_required
+def contrato_imprimir(nro_contrato: int):
+    try:
+        detalles = controller.obtener_detalles_contrato_completo(nro_contrato)
+        return render_template("contratos/imprimir.html", **detalles)
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(url_for("views.contratos_list"))
+
+
+
 # --- Finanzas Routes ---
 
 

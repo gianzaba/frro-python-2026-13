@@ -102,6 +102,27 @@ class Contrato:
         self.tipo_contrato = tipo_contrato
         self.ruta_documento_respaldo = ruta_documento_respaldo
 
+    @property
+    def monto_comision_agente(self) -> float:
+        """Calcula el monto que cobra el agente al celebrarse el contrato."""
+        return round(self.monto * (self.comision_porcentaje / 100.0), 2)
+
+
+class Clausula:
+    def __init__(
+        self,
+        id: Optional[int] = None,
+        nro_contrato: int = 0,
+        orden: int = 1,
+        titulo: str = "",
+        contenido: str = "",
+    ):
+        self.id = id
+        self.nro_contrato = nro_contrato
+        self.orden = orden
+        self.titulo = titulo
+        self.contenido = contenido
+
 
 class AgenteAsignado:
     def __init__(

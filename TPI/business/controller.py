@@ -12,6 +12,7 @@ from business.entities import (
     AgenteAsignado as AgenteAsignadoBO,
     PagoInquilino as PagoInquilinoBO,
     PagoPropietario as PagoPropietarioBO,
+    Clausula as ClausulaBO,
 )
 
 # Import Data Access Layer (aliased to db to conform to guidelines)
@@ -262,7 +263,10 @@ def solicitar_contrato(
         tipo_contrato=tipo_contrato,
         ruta_documento_respaldo=ruta_documento_respaldo,
     )
-    return db.save_contrato(bo)
+    saved = db.save_contrato(bo)
+    generar_clausulas_predeterminadas(saved.nro_contrato)
+    return saved
+
 
 
 def firmar_contrato(nro_contrato: int) -> ContratoBO:
@@ -302,6 +306,9 @@ def firmar_contrato(nro_contrato: int) -> ContratoBO:
     contrato.fecha_contrato = date.today()
     db.save_contrato(contrato)
 
+    # Asegurar que existan cláusulas para este contrato
+    generar_clausulas_predeterminadas(contrato.nro_contrato)
+
     # Actualizar estado de propiedad
     # Determinamos el estado final en base al tipo de propiedad
     if propiedad.tipo.lower() == "alquiler":
@@ -313,6 +320,219 @@ def firmar_contrato(nro_contrato: int) -> ContratoBO:
 
     db.save_propiedad(propiedad)
     return contrato
+
+
+# --- Gestión de Cláusulas y Comisiones de Agente ---
+
+
+def generar_clausulas_predeterminadas(nro_contrato: int) -> List[ClausulaBO]:
+    """
+    Genera las cláusulas modelo/predeterminadas para un contrato de Alquiler o Compraventa si aún no posee cláusulas.
+    """
+    contrato = db.get_contrato_by_id(nro_contrato)
+    if not contrato:
+        raise ValueError("El contrato especificado no existe.")
+
+    existing = db.get_clausulas_by_contrato(nro_contrato)
+    if existing:
+        return existing
+
+    prop = db.get_propiedad_by_id(contrato.id_propiedad)
+    loc_direccion = prop.direccion if prop else "el inmueble designado"
+    monto_fmt = f"{contrato.monto:,.2f}"
+    comision_fmt = f"{contrato.comision_porcentaje}%"
+    monto_comision_agente_fmt = f"{contrato.monto_comision_agente:,.2f}"
+
+    clausulas_base = []
+    if contrato.tipo_contrato.lower() == "compraventa" or (
+        prop and prop.tipo.lower() == "venta"
+    ):
+        clausulas_base = [
+            (
+                "PRIMERA (PARTES Y OBJETO)",
+                f"El VENDEDOR vende y transfiere al COMPRADOR el inmueble ubicado en {loc_direccion}, libre de todo gravamen y en el estado de conservación en que se encuentra.",
+            ),
+            (
+                "SEGUNDA (PRECIO Y FORMA DE PAGO)",
+                f"El precio total y definitivo convenido para la compraventa es de ${monto_fmt}, abonado de contado al momento de la escrituración o según las condiciones acordadas.",
+            ),
+            (
+                "TERCERA (POSESIÓN Y ESCRITURACIÓN)",
+                "La posesión real, efectiva y legal del inmueble se entregará en el acto de firma de la escritura traslativa de dominio ante el Escribano designado por la parte compradora.",
+            ),
+            (
+                "CUARTA (COMISIÓN DEL AGENTE INMOBILIARIO)",
+                f"El AGENTE INMOBILIARIO cobra una comisión del {comision_fmt} (${monto_comision_agente_fmt}) por la celebración del presente contrato de compraventa, abonada en este acto al firmar el acuerdo.",
+            ),
+            (
+                "QUINTA (GASTOS E IMPUESTOS)",
+                "Los gastos de escrituración, honorarios profesionales, sellados e impuestos se distribuirán conforme a las leyes vigentes y costumbre de la plaza mercantil.",
+            ),
+            (
+                "SEXTA (EVICCIÓN Y SANEAMIENTO)",
+                "El VENDEDOR garantiza el pleno derecho de propiedad y responde por evicción y vicios redhibitorios de conformidad con las disposiciones del Código Civil y Comercial.",
+            ),
+            (
+                "SÉPTIMA (JURISDICCIÓN Y COMPETENCIA)",
+                "Para todas las vicisitudes derivadas del presente contrato, las partes se someten libremente a los Tribunales Ordinarios de la jurisdicción correspondiente.",
+            ),
+        ]
+    else:
+        clausulas_base = [
+            (
+                "PRIMERA (PARTES Y OBJETO)",
+                f"El LOCADOR cede en locación al LOCATARIO, y este acepta, el inmueble ubicado en {loc_direccion}, destinado exclusivamente a vivienda familiar o uso convenido.",
+            ),
+            (
+                "SEGUNDA (PLAZO Y CANON LOCATIVO)",
+                f"El canon locativo mensual se establece en la suma de ${monto_fmt}, pagaderos por período adelantado del 1 al 10 de cada mes calendario.",
+            ),
+            (
+                "TERCERA (FORMA Y LUGAR DE PAGO)",
+                "El pago del alquiler se efectuará mediante transferencia bancaria a la cuenta designada o presencialmente en el domicilio del AGENTE INMOBILIARIO / LOCADOR.",
+            ),
+            (
+                "CUARTA (COMISIÓN DEL AGENTE INMOBILIARIO)",
+                f"El AGENTE INMOBILIARIO cobra una comisión del {comision_fmt} (${monto_comision_agente_fmt}) al celebrarse la firma del presente contrato de locación.",
+            ),
+            (
+                "QUINTA (EXPENSAS Y SERVICIOS)",
+                "Serán a cargo exclusivo del LOCATARIO el pago de los servicios de energía eléctrica, agua, gas y las expensas ordinarias del inmueble.",
+            ),
+            (
+                "SEXTA (RESCISIÓN ANTICIPADA)",
+                "El LOCATARIO podrá rescindir anticipadamente la locación transcurridos los primeros seis meses de contrato, notificando fehacientemente y abonando las indemnizaciones de ley.",
+            ),
+            (
+                "SÉPTIMA (JURISDICCIÓN Y COMPETENCIA)",
+                "Para cualquier divergencia sobre la interpretación o cumplimiento de este contrato, las partes fijan domicilio y se someten a los Tribunales Ordinarios.",
+            ),
+        ]
+
+    created = []
+    for idx, (titulo, contenido) in enumerate(clausulas_base, 1):
+        bo = ClausulaBO(
+            id=None,
+            nro_contrato=nro_contrato,
+            orden=idx,
+            titulo=titulo,
+            contenido=contenido,
+        )
+        saved = db.save_clausula(bo)
+        created.append(saved)
+
+    return created
+
+
+def listar_clausulas_contrato(nro_contrato: int) -> List[ClausulaBO]:
+    """
+    Devuelve las cláusulas asociadas a un contrato. Si no existen, las genera automáticamente a partir de la plantilla modelo.
+    """
+    clausulas = db.get_clausulas_by_contrato(nro_contrato)
+    if not clausulas:
+        clausulas = generar_clausulas_predeterminadas(nro_contrato)
+    return clausulas
+
+
+def agregar_clausula_contrato(
+    nro_contrato: int, titulo: str, contenido: str
+) -> ClausulaBO:
+    """
+    Añade una nueva cláusula a un contrato.
+    """
+    contrato = db.get_contrato_by_id(nro_contrato)
+    if not contrato:
+        raise ValueError("El contrato especificado no existe.")
+    if not titulo or not titulo.strip():
+        raise ValueError("El título de la cláusula no puede estar vacío.")
+    if not contenido or not contenido.strip():
+        raise ValueError("El contenido de la cláusula no puede estar vacío.")
+
+    current = db.get_clausulas_by_contrato(nro_contrato)
+    nuevo_orden = len(current) + 1
+    bo = ClausulaBO(
+        id=None,
+        nro_contrato=nro_contrato,
+        orden=nuevo_orden,
+        titulo=titulo.strip(),
+        contenido=contenido.strip(),
+    )
+    return db.save_clausula(bo)
+
+
+def modificar_clausula_contrato(
+    id_clausula: int, titulo: str, contenido: str
+) -> ClausulaBO:
+    """
+    Modifica una cláusula existente del contrato.
+    """
+    clausula = db.get_clausula_by_id(id_clausula)
+    if not clausula:
+        raise ValueError("La cláusula especificada no existe.")
+    if not titulo or not titulo.strip():
+        raise ValueError("El título de la cláusula no puede estar vacío.")
+    if not contenido or not contenido.strip():
+        raise ValueError("El contenido de la cláusula no puede estar vacío.")
+
+    clausula.titulo = titulo.strip()
+    clausula.contenido = contenido.strip()
+    return db.save_clausula(clausula)
+
+
+def eliminar_clausula_contrato(id_clausula: int) -> bool:
+    """
+    Elimina/quita una cláusula del contrato.
+    """
+    clausula = db.get_clausula_by_id(id_clausula)
+    if not clausula:
+        raise ValueError("La cláusula especificada no existe.")
+    return db.delete_clausula(id_clausula)
+
+
+def actualizar_comision_contrato(
+    nro_contrato: int, comision_porcentaje: float
+) -> ContratoBO:
+    """
+    Permite modificar/actualizar el porcentaje de comisión que cobra el agente para este contrato.
+    """
+    if comision_porcentaje < 0 or comision_porcentaje > 100:
+        raise ValueError("El porcentaje de comisión debe estar entre 0% y 100%.")
+
+    contrato = db.update_contrato_comision(nro_contrato, comision_porcentaje)
+    if not contrato:
+        raise ValueError("El contrato especificado no existe.")
+    return contrato
+
+
+def obtener_detalles_contrato_completo(nro_contrato: int) -> dict:
+    """
+    Retorna un diccionario completo con todos los objetos de dominio involucrados en el contrato
+    (Contrato, Cliente, Agente, Propiedad, Propietario, Cláusulas y Comisión calculada del agente).
+    """
+    contrato = db.get_contrato_by_id(nro_contrato)
+    if not contrato:
+        raise ValueError("El contrato especificado no existe.")
+
+    cliente = db.get_cliente_by_id(contrato.id_cliente)
+    agente = db.get_agente_by_id(contrato.id_agente)
+    propiedad = db.get_propiedad_by_id(contrato.id_propiedad)
+    propietario = (
+        db.get_propietario_by_id(propiedad.id_propietario)
+        if propiedad
+        else None
+    )
+    clausulas = listar_clausulas_contrato(nro_contrato)
+
+    return {
+        "contrato": contrato,
+        "cliente": cliente,
+        "agente": agente,
+        "propiedad": propiedad,
+        "propietario": propietario,
+        "clausulas": clausulas,
+        "monto_comision_agente": contrato.monto_comision_agente,
+    }
+
 
 
 # --- Queries exposing data objects to Presentation Layer ---

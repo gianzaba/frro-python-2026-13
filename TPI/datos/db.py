@@ -27,7 +27,12 @@ from business.entities import (
     AgenteAsignado as AgenteAsignadoBO,
     PagoInquilino as PagoInquilinoBO,
     PagoPropietario as PagoPropietarioBO,
+    Clausula as ClausulaBO,
 )
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(BASE_DIR)
+SQLITE_DB_PATH = os.path.join(PROJECT_DIR, "tpi_inmobiliaria.db").replace("\\", "/")
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
@@ -42,7 +47,8 @@ try:
         pass
 except Exception as e:
     print(f"Warning: PostgreSQL failed ({e}). Falling back to SQLite.")
-    engine = create_engine("sqlite:///tpi_inmobiliaria.db")
+    engine = create_engine(f"sqlite:///{SQLITE_DB_PATH}")
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -199,6 +205,21 @@ class PagoPropietarioTable(Base):
     contrato = relationship("ContratoTable", foreign_keys=[nro_contrato])
 
 
+class ClausulaTable(Base):
+    __tablename__ = "clausula"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nro_contrato = Column(
+        Integer, ForeignKey("contrato.nro_contrato"), nullable=False
+    )
+    orden = Column(Integer, nullable=False, default=1)
+    titulo = Column(String(200), nullable=False)
+    contenido = Column(String, nullable=False)
+
+    contrato = relationship("ContratoTable", foreign_keys=[nro_contrato])
+
+
+
 # --- Database Schema Creation ---
 
 
@@ -232,6 +253,7 @@ def init_db(reset: bool = False):
             "agente_asignado",
             "pago_inquilino",
             "pago_propietario",
+            "clausula",
         ]
         
         needs_recreate = False
@@ -252,8 +274,20 @@ def init_db(reset: bool = False):
 
         if needs_recreate:
             recreate_all()
+        else:
+            Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"Schema verification note: {e}")
+        Base.metadata.create_all(bind=engine)
+
+
+# Auto-initialize database tables on module import if needed
+try:
+    init_db()
+except Exception:
+    pass
+
+
 
 
 # --- Conversions: DB Models -> Business Objects ---
@@ -1000,3 +1034,110 @@ def get_pago_propietario_by_period(
         return to_bo_pago_propietario(obj)
     finally:
         db.close()
+
+
+def to_bo_clausula(obj: Optional[ClausulaTable]) -> Optional[ClausulaBO]:
+    if not obj:
+        return None
+    return ClausulaBO(
+        id=obj.id,
+        nro_contrato=obj.nro_contrato,
+        orden=obj.orden,
+        titulo=obj.titulo,
+        contenido=obj.contenido,
+    )
+
+
+def save_clausula(bo: ClausulaBO) -> ClausulaBO:
+    db = SessionLocal()
+    try:
+        if bo.id:
+            table_obj = (
+                db.query(ClausulaTable)
+                .filter(ClausulaTable.id == bo.id)
+                .first()
+            )
+            if table_obj:
+                table_obj.nro_contrato = bo.nro_contrato
+                table_obj.orden = bo.orden
+                table_obj.titulo = bo.titulo
+                table_obj.contenido = bo.contenido
+        else:
+            table_obj = ClausulaTable(
+                nro_contrato=bo.nro_contrato,
+                orden=bo.orden,
+                titulo=bo.titulo,
+                contenido=bo.contenido,
+            )
+            db.add(table_obj)
+
+        db.commit()
+        db.refresh(table_obj)
+        return to_bo_clausula(table_obj)
+    finally:
+        db.close()
+
+
+def get_clausulas_by_contrato(nro_contrato: int) -> List[ClausulaBO]:
+    db = SessionLocal()
+    try:
+        objs = (
+            db.query(ClausulaTable)
+            .filter(ClausulaTable.nro_contrato == nro_contrato)
+            .order_by(ClausulaTable.orden.asc(), ClausulaTable.id.asc())
+            .all()
+        )
+        return [to_bo_clausula(o) for o in objs]
+    finally:
+        db.close()
+
+
+def get_clausula_by_id(id_clausula: int) -> Optional[ClausulaBO]:
+    db = SessionLocal()
+    try:
+        obj = (
+            db.query(ClausulaTable)
+            .filter(ClausulaTable.id == id_clausula)
+            .first()
+        )
+        return to_bo_clausula(obj)
+    finally:
+        db.close()
+
+
+def delete_clausula(id_clausula: int) -> bool:
+    db = SessionLocal()
+    try:
+        obj = (
+            db.query(ClausulaTable)
+            .filter(ClausulaTable.id == id_clausula)
+            .first()
+        )
+        if obj:
+            db.delete(obj)
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
+
+
+def update_contrato_comision(
+    nro_contrato: int, nueva_comision: float
+) -> Optional[ContratoBO]:
+    db = SessionLocal()
+    try:
+        obj = (
+            db.query(ContratoTable)
+            .filter(ContratoTable.nro_contrato == nro_contrato)
+            .first()
+        )
+        if obj:
+            obj.comision_porcentaje = nueva_comision
+            db.commit()
+            db.refresh(obj)
+            return to_bo_contrato(obj)
+        return None
+    finally:
+        db.close()
+

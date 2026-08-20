@@ -1,0 +1,186 @@
+{% extends "layout.html" %}
+
+{% block title %}Detalle de Contrato #{{ contrato.nro_contrato }}{% endblock %}
+
+{% block content %}
+<header>
+    <div>
+        <h1>Contrato de {{ contrato.tipo_contrato }} #{{ contrato.nro_contrato }}</h1>
+        <p style="color: var(--text-secondary); margin-top: 0.2rem;">
+            Detalles del acuerdo, comisión del agente y cláusulas del contrato listo para la firma.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{{ url_for('views.contrato_imprimir', nro_contrato=contrato.nro_contrato) }}" class="btn btn-primary" target="_blank">
+            🖨️ Vista Previa e Impresión
+        </a>
+        <a href="{{ url_for('views.contratos_list') }}" class="btn btn-secondary">
+            ⬅️ Volver a Contratos
+        </a>
+    </div>
+</header>
+
+<!-- Resumen e Información del Contrato -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+
+    <div class="card">
+        <h2>📑 Datos Principales del Acuerdo</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; margin-top: 1rem;">
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Tipo de Operación</span>
+                <strong style="font-size: 1.1rem;">{{ contrato.tipo_contrato }}</strong>
+            </div>
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Estado Actual</span>
+                <span class="badge badge-{{ contrato.estado }}">{{ contrato.estado }}</span>
+            </div>
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Fecha Solicitud</span>
+                <strong>{{ contrato.fecha_solicitud.strftime('%d/%m/%Y') if contrato.fecha_solicitud else '-' }}</strong>
+            </div>
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Fecha Firma/Celebración</span>
+                <strong>{{ contrato.fecha_contrato.strftime('%d/%m/%Y') if contrato.fecha_contrato else 'Pendiente' }}</strong>
+            </div>
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Monto de Operación</span>
+                <strong style="font-size: 1.2rem; color: var(--primary-color);">${{ "%.2f"|format(contrato.monto) }}</strong>
+            </div>
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Inmueble / Propiedad</span>
+                <strong>{{ propiedad.direccion if propiedad else 'N/A' }}</strong>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">Zona: {{ propiedad.zona if propiedad else '-' }}</div>
+            </div>
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">
+                    {{ 'Inquilino / Comprador' if contrato.tipo_contrato == 'Alquiler' else 'Comprador' }}
+                </span>
+                <strong>{{ cliente.nombre_completo if cliente else 'N/A' }}</strong>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">Doc: {{ cliente.tipo_doc }} {{ cliente.nro_doc }}</div>
+            </div>
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Propietario / Vendedor</span>
+                <strong>{{ propietario.nombre_completo if propietario else 'N/A' }}</strong>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">Tel: {{ propietario.telefono if propietario else '-' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modulo de Comisión del Agente -->
+    <div class="card" style="background: rgba(30, 41, 59, 0.5); border: 1px solid var(--border-color);">
+        <h2>💼 Comisión del Agente</h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            El agente inmobiliario interviniente cobra su comisión al celebrarse el contrato.
+        </p>
+
+        <div style="padding: 1rem; background: var(--bg-card); border-radius: 8px; margin-bottom: 1.2rem; border-left: 4px solid var(--primary-color);">
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">Agente Interviniente</div>
+            <strong style="font-size: 1.05rem;">👤 {{ agente.nombre_completo if agente else 'N/A' }}</strong>
+            
+            <div style="margin-top: 0.8rem; font-size: 0.85rem; color: var(--text-secondary);">Comisión Cobrada al Celebrar:</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #10b981; margin-top: 0.2rem;">
+                ${{ "%.2f"|format(monto_comision_agente) }}
+            </div>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                Calculado como el {{ contrato.comision_porcentaje }}% de ${{ "%.2f"|format(contrato.monto) }}
+            </span>
+        </div>
+
+        <!-- Formulario para Modificar el % de Comisión del Agente -->
+        <form action="{{ url_for('views.contrato_comision_actualizar', nro_contrato=contrato.nro_contrato) }}" method="POST">
+            <div class="form-group" style="margin-bottom: 0.8rem;">
+                <label for="comision_porcentaje" style="font-size: 0.85rem;">Cambiar % de Comisión del Agente:</label>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.3rem;">
+                    <input type="number" step="0.1" min="0" max="100" id="comision_porcentaje" name="comision_porcentaje" value="{{ contrato.comision_porcentaje }}" required class="form-control" style="width: 100px;">
+                    <span style="align-self: center; font-weight: bold;">%</span>
+                    <button type="submit" class="btn btn-secondary btn-sm" style="flex: 1;">💾 Guardar %</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<!-- Sección de Cláusulas del Contrato -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>📜 Cláusulas del Contrato</h2>
+        <button onclick="document.getElementById('form-nueva-clausula').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary btn-sm">
+            ➕ Añadir Cláusula
+        </button>
+    </div>
+    
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+        Las cláusulas predeterminadas se han cargado automáticamente para contratos de {{ contrato.tipo_contrato }}. Podés modificar cualquier cláusula, eliminarla o agregar nuevas según los acuerdos particulares.
+    </p>
+
+    <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+        {% for cl in clausulas %}
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1.2rem; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h3 style="font-size: 1.05rem; margin: 0; color: var(--primary-color);">
+                    Cláusula {{ cl.orden }}: {{ cl.titulo }}
+                </h3>
+                <div style="display: flex; gap: 0.4rem;">
+                    <button onclick="toggleEditForm({{ cl.id }})" class="btn btn-secondary btn-sm">✏️ Editar</button>
+                    <form action="{{ url_for('views.clausula_eliminar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Seguro que querés quitar esta cláusula del contrato?');">
+                        <button type="submit" class="btn btn-danger btn-sm">🗑️ Quitar</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Vista de contenido -->
+            <p id="clausula-view-{{ cl.id }}" style="margin: 0; line-height: 1.5; color: var(--text-primary); white-space: pre-line;">
+                {{ cl.contenido }}
+            </p>
+
+            <!-- Formulario de edición (oculto por defecto) -->
+            <form id="clausula-edit-{{ cl.id }}" action="{{ url_for('views.clausula_editar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: none; margin-top: 1rem; background: var(--bg-card); padding: 1rem; border-radius: 6px;">
+                <div class="form-group" style="margin-bottom: 0.8rem;">
+                    <label style="font-size: 0.85rem;">Título de Cláusula</label>
+                    <input type="text" name="titulo" value="{{ cl.titulo }}" required class="form-control">
+                </div>
+                <div class="form-group" style="margin-bottom: 0.8rem;">
+                    <label style="font-size: 0.85rem;">Contenido de la Cláusula</label>
+                    <textarea name="contenido" rows="3" required class="form-control" style="width: 100%; min-height: 80px;">{{ cl.contenido }}</textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn btn-success btn-sm">💾 Guardar Cambios</button>
+                    <button type="button" onclick="toggleEditForm({{ cl.id }})" class="btn btn-secondary btn-sm">Cancelar</button>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Formulario para Añadir Nueva Cláusula -->
+    <div id="form-nueva-clausula" style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <h3>➕ Añadir Nueva Cláusula al Contrato</h3>
+        <form action="{{ url_for('views.clausula_agregar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="margin-top: 1rem;">
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="titulo">Título de la Cláusula (Ej: OCTAVA (GARANTÍAS)):</label>
+                <input type="text" id="titulo" name="titulo" placeholder="Ej: OCTAVA (DEPÓSITO EN GARANTÍA)" required class="form-control">
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="contenido">Contenido de la Cláusula:</label>
+                <textarea id="contenido" name="contenido" rows="3" placeholder="Escribí aquí el texto completo de la cláusula..." required class="form-control" style="width: 100%; min-height: 100px;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">➕ Agregar Cláusula</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleEditForm(id) {
+    var viewElem = document.getElementById('clausula-view-' + id);
+    var editForm = document.getElementById('clausula-edit-' + id);
+    if (editForm.style.display === 'none') {
+        editForm.style.display = 'block';
+        viewElem.style.display = 'none';
+    } else {
+        editForm.style.display = 'none';
+        viewElem.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrato de {{ contrato.tipo_contrato }} #{{ contrato.nro_contrato }} - Impresión</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Times New Roman', Times, serif, 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .no-print-bar {
+            max-width: 800px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .btn-print {
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .btn-print:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-back {
+            background: #e2e8f0;
+            color: #334155;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .contract-paper {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 3.5rem 4rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-radius: 2px;
+            color: #000000;
+        }
+
+        .location-date {
+            text-align: left;
+            margin-bottom: 1.5rem;
+            font-size: 1.05rem;
+        }
+
+        .section-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-top: 1.2rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .party-paragraph {
+            text-align: justify;
+            margin-bottom: 0.8rem;
+            font-size: 1.05rem;
+        }
+
+        .exposition-paragraph {
+            text-align: justify;
+            margin-bottom: 0.6rem;
+            font-size: 1.05rem;
+        }
+
+        .clause-block {
+            margin-bottom: 1.2rem;
+            text-align: justify;
+            font-size: 1.05rem;
+        }
+
+        .clause-title {
+            font-weight: bold;
+            display: inline;
+        }
+
+        .closing-text {
+            margin-top: 2.5rem;
+            margin-bottom: 3rem;
+            text-align: justify;
+            font-size: 1.05rem;
+        }
+
+        /* Estructura de cajas de firma similar al formato PDF */
+        .signatures-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+            page-break-inside: avoid;
+        }
+
+        .signature-card {
+            border: 1px solid #000000;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 140px;
+        }
+
+        .signature-card-header {
+            border-bottom: 1px solid #000000;
+            padding: 0.4rem 0.8rem;
+            font-weight: bold;
+            font-size: 0.95rem;
+            background: #fafafa;
+        }
+
+        .signature-card-body {
+            flex-grow: 1;
+            min-height: 70px;
+        }
+
+        .signature-card-footer {
+            border-top: 1px solid #000000;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.9rem;
+            background: #ffffff;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+            .no-print-bar {
+                display: none !important;
+            }
+            .contract-paper {
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print-bar">
+        <div>
+            <strong>Vista de Impresión del Contrato de {{ contrato.tipo_contrato }} #{{ contrato.nro_contrato }}</strong>
+            <span style="display: block; font-size: 0.85rem; color: #64748b;">Formato oficial adaptado listo para firmar</span>
+        </div>
+        <div>
+            <a href="{{ url_for('views.contrato_detalle', nro_contrato=contrato.nro_contrato) }}" class="btn-back">⬅️ Volver al Sistema</a>
+            <button onclick="window.print()" class="btn-print">🖨️ Imprimir Contrato</button>
+        </div>
+    </div>
+
+    <div class="contract-paper">
+        
+        <!-- Fecha y Lugar -->
+        <div class="location-date">
+            En Rosario, a {{ contrato.fecha_contrato.strftime('%d') if contrato.fecha_contrato else contrato.fecha_solicitud.strftime('%d') }} de {{ date_today.split('/')[1] if date_today else 'agosto' }} de 2026
+        </div>
+
+        <!-- REUNIDOS -->
+        <div class="section-header">REUNIDOS</div>
+        
+        <div class="party-paragraph">
+            De una parte, <strong>{{ propietario.nombre_completo if propietario else '_______________________' }}</strong>, mayor de edad, con domicilio en {{ propietario.domicilio if propietario else '_______________________' }} y con Documento Nacional de Identidad N° {{ propietario.nro_doc if propietario else '____________' }}, en adelante la parte <strong>{{ 'VENDEDORA' if contrato.tipo_contrato == 'Compraventa' else 'LOCADORA' }}</strong>.
+        </div>
+
+        <div class="party-paragraph">
+            Y de otra, <strong>{{ cliente.nombre_completo if cliente else '_______________________' }}</strong>, mayor de edad, con domicilio en {{ cliente.domicilio if cliente else '_______________________' }} y con Documento Nacional de Identidad N° {{ cliente.nro_doc if cliente else '____________' }}, en adelante la parte <strong>{{ 'COMPRADORA' if contrato.tipo_contrato == 'Compraventa' else 'LOCATARIA' }}</strong>.
+        </div>
+
+        <div class="party-paragraph">
+            Con la intervención del Agente Inmobiliario <strong>{{ agente.nombre_completo if agente else '_______________________' }}</strong> (Matrícula N° {{ agente.matricula if agente else '________' }}), quien percibe una comisión del {{ contrato.comision_porcentaje }}% (${{ "%.2f"|format(monto_comision_agente) }}) por la gestión y celebración del acuerdo.
+        </div>
+
+        <div class="party-paragraph">
+            Ambas partes se reconocen capacidad legal suficiente para otorgar el presente contrato de {{ contrato.tipo_contrato|lower }}. Y
+        </div>
+
+        <!-- EXPONEN -->
+        <div class="section-header">EXPONEN</div>
+
+        <div class="exposition-paragraph">
+            Que la parte {{ 'VENDEDORA' if contrato.tipo_contrato == 'Compraventa' else 'LOCADORA' }} es propietaria del inmueble ubicado en <strong>{{ propiedad.direccion if propiedad else '_______________________' }}</strong> (Zona {{ propiedad.zona if propiedad else '-' }}).
+        </div>
+
+        <div class="exposition-paragraph">
+            Que la parte {{ 'COMPRADORA' if contrato.tipo_contrato == 'Compraventa' else 'LOCATARIA' }} está interesada en la {{ 'adquisición' if contrato.tipo_contrato == 'Compraventa' else 'locación' }} de dicho inmueble, por lo que
+        </div>
+
+        <!-- ACUERDAN -->
+        <div class="section-header">ACUERDAN</div>
+
+        <div class="exposition-paragraph">
+            Celebrar el presente contrato de {{ contrato.tipo_contrato|lower }}, atendiendo a las siguientes
+        </div>
+
+        <div class="section-header">CLÁUSULAS</div>
+
+        <!-- LISTADO DE CLÁUSULAS -->
+        {% for cl in clausulas %}
+        <div class="clause-block">
+            <span class="clause-title">{{ cl.titulo }}:</span> {{ cl.contenido }}
+        </div>
+        {% endfor %}
+
+        <!-- CIERRE -->
+        <div class="closing-text">
+            Y en conformidad con lo expuesto, firman las partes el presente contrato de {{ contrato.tipo_contrato|lower }} por duplicado, en el lugar y fecha arriba indicados.
+        </div>
+
+        <!-- CAJAS DE FIRMA EN CUADROS (Idénticas al PDF adjunto) -->
+        <div class="signatures-grid">
+            
+            <!-- Firma Vendedor / Locador -->
+            <div class="signature-card">
+                <div class="signature-card-header">
+                    El {{ 'vendedor' if contrato.tipo_contrato == 'Compraventa' else 'locador' }}
+                </div>
+                <div class="signature-card-body"></div>
+                <div class="signature-card-footer">
+                    Fdo.: {{ propietario.nombre_completo if propietario else '' }}
+                </div>
+            </div>
+
+            <!-- Firma Comprador / Locatario -->
+            <div class="signature-card">
+                <div class="signature-card-header">
+                    El {{ 'comprador' if contrato.tipo_contrato == 'Compraventa' else 'locatario' }}
+                </div>
+                <div class="signature-card-body"></div>
+                <div class="signature-card-footer">
+                    Fdo.: {{ cliente.nombre_completo if cliente else '' }}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Firma del Agente Inmobiliario -->
+        <div class="signatures-grid" style="grid-template-columns: 1fr; margin-top: 1.5rem;">
+            <div class="signature-card" style="max-width: 400px; margin: 0 auto;">
+                <div class="signature-card-header">
+                    El Agente Inmobiliario (Corredor)
+                </div>
+                <div class="signature-card-body"></div>
+                <div class="signature-card-footer">
+                    Fdo.: {{ agente.nombre_completo if agente else '' }} (Comisión {{ contrato.comision_porcentaje }}%)
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
