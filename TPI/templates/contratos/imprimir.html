@@ -198,8 +198,9 @@
         </div>
 
         <div class="party-paragraph">
-            Con la intervención del Agente Inmobiliario <strong>{{ agente.nombre_completo if agente else '_______________________' }}</strong> (Matrícula N° {{ agente.matricula if agente else '________' }}), quien percibe una comisión del {{ contrato.comision_porcentaje }}% (${{ "%.2f"|format(monto_comision_agente) }}) por la gestión y celebración del acuerdo.
+            Con la intervención del Agente Inmobiliario <strong>{{ agente.nombre_completo if agente else '_______________________' }}</strong> (Matrícula N° {{ agente.matricula if agente else '________' }}), fijándose el honorario profesional por intermediación inmobiliaria en el {{ contrato.comision_porcentaje }}% (${{ "%.2f"|format(monto_honorarios_totales) }}).
         </div>
+
 
         <div class="party-paragraph">
             Ambas partes se reconocen capacidad legal suficiente para otorgar el presente contrato de {{ contrato.tipo_contrato|lower }}. Y

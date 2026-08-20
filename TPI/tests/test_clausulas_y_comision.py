@@ -167,15 +167,18 @@ def test_crud_clausulas_y_modificacion_comision_agente():
         tipo_contrato="Alquiler",
     )
 
-    # Verificación de comisión inicial: 10% de 200,000 = 20,000
-    assert contrato.monto_comision_agente == 20000.0
+    # Verificación de honorarios iniciales: 10% de 200,000 = 20,000 (3% agente = 6,000)
+    assert contrato.monto_honorarios_totales == 20000.0
+    assert contrato.monto_comision_agente == 6000.0
 
-    # 1. Modificar porcentaje de comisión del agente
+    # 1. Modificar porcentaje de honorarios y comisión del agente
     updated_contrato = controller.actualizar_comision_contrato(
-        contrato.nro_contrato, 12.5
+        contrato.nro_contrato, comision_porcentaje=12.5, comision_agente_porcentaje=4.0
     )
     assert updated_contrato.comision_porcentaje == 12.5
-    assert updated_contrato.monto_comision_agente == 25000.0
+    assert updated_contrato.monto_honorarios_totales == 25000.0
+    assert updated_contrato.monto_comision_agente == 8000.0
+
 
     # 2. Agregar nueva cláusula
     nueva_cl = controller.agregar_clausula_contrato(
@@ -200,3 +203,89 @@ def test_crud_clausulas_y_modificacion_comision_agente():
 
     clausulas_finales = controller.listar_clausulas_contrato(contrato.nro_contrato)
     assert not any(c.id == nueva_cl.id for c in clausulas_finales)
+
+
+def test_desglose_honorarios_e_inmutabilidad_al_firmar():
+    """
+    Verifica el desglose entre honorarios totales, comisión de agente e inmobiliaria,
+    y que al firmar el contrato se bloquee cualquier intento de modificación.
+    """
+    agente = controller.registrar_agente(
+        nombre="Firma",
+        apellido="Tester",
+        email="firma@test.com",
+        password="pass",
+        cuil="20-50000000-9",
+        matricula="MAT-300",
+        tipo_doc="DNI",
+        nro_doc="50000000",
+        domicilio="Pellegrini 100",
+        telefono="341999888",
+    )
+    propietario = controller.registrar_propietario(
+        nombre="Owner",
+        apellido="Test",
+        email="owner@test.com",
+        tipo_doc="DNI",
+        nro_doc="16000000",
+        domicilio="Mitre 100",
+        telefono="341888777",
+    )
+    cliente = controller.registrar_cliente(
+        nombre="Client",
+        apellido="Test",
+        email="client@test.com",
+        tipo_doc="DNI",
+        nro_doc="33000000",
+        domicilio="San Martin 100",
+        telefono="341777666",
+    )
+    prop = controller.registrar_propiedad(
+        direccion="San Lorenzo 1500, Rosario",
+        tipo="Alquiler",
+        zona="Centro",
+        id_propietario=propietario.id,
+    )
+    controller.asignar_agente_a_propiedad(
+        id_agente=agente.id, id_propiedad=prop.id, desde=datetime.now()
+    )
+
+    contrato = controller.solicitar_contrato(
+        id_cliente=cliente.id,
+        id_agente=agente.id,
+        id_propiedad=prop.id,
+        monto=100000.0,
+        comision_porcentaje=10.0,  # 10% Honorario Total = $10.000
+        comision_agente_porcentaje=3.0,  # 3% Comisión Agente = $3.000
+        tipo_contrato="Alquiler",
+    )
+
+    # Verificación del desglose interno
+    detalles = controller.obtener_detalles_contrato_completo(contrato.nro_contrato)
+    assert detalles["monto_honorarios_totales"] == 10000.0
+    assert detalles["monto_comision_agente"] == 3000.0
+    assert detalles["monto_comision_inmobiliaria"] == 7000.0
+
+    # Firmar el contrato
+    signed = controller.firmar_contrato(contrato.nro_contrato)
+    assert signed.estado == "activo"
+
+    # Intentar modificar cláusulas o honorarios debe lanzar ValueError
+    with pytest.raises(ValueError, match="El contrato ya ha sido firmado"):
+        controller.agregar_clausula_contrato(
+            contrato.nro_contrato, "NUEVA", "Contenido no permitido"
+        )
+
+    with pytest.raises(ValueError, match="El contrato ya ha sido firmado"):
+        controller.actualizar_comision_contrato(contrato.nro_contrato, 15.0, 5.0)
+
+    clausulas = controller.listar_clausulas_contrato(contrato.nro_contrato)
+    if clausulas:
+        with pytest.raises(ValueError, match="El contrato ya ha sido firmado"):
+            controller.modificar_clausula_contrato(
+                clausulas[0].id, "TITULO MODIFICADO", "Texto modificado"
+            )
+
+        with pytest.raises(ValueError, match="El contrato ya ha sido firmado"):
+            controller.eliminar_clausula_contrato(clausulas[0].id)
+

@@ -218,7 +218,9 @@ def solicitar_contrato(
     id_propiedad: int,
     monto: float = 0.0,
     comision_porcentaje: float = 10.0,
+    comision_agente_porcentaje: float = 3.0,
     tipo_contrato: str = "Alquiler",
+
     ruta_documento_respaldo: Optional[str] = None,
     fecha_solicitud: Optional[date] = None,
 ) -> ContratoBO:
@@ -255,12 +257,14 @@ def solicitar_contrato(
         id_propiedad=id_propiedad,
         monto=monto,
         comision_porcentaje=comision_porcentaje,
+        comision_agente_porcentaje=comision_agente_porcentaje,
         tipo_contrato=tipo_contrato,
         ruta_documento_respaldo=ruta_documento_respaldo,
     )
     saved = db.save_contrato(bo)
     generar_clausulas_predeterminadas(saved.nro_contrato)
     return saved
+
 
 
 
@@ -336,7 +340,7 @@ def generar_clausulas_predeterminadas(nro_contrato: int) -> List[ClausulaBO]:
     loc_direccion = prop.direccion if prop else "el inmueble designado"
     monto_fmt = f"{contrato.monto:,.2f}"
     comision_fmt = f"{contrato.comision_porcentaje}%"
-    monto_comision_agente_fmt = f"{contrato.monto_comision_agente:,.2f}"
+    monto_honorarios_totales_fmt = f"{contrato.monto_honorarios_totales:,.2f}"
 
     clausulas_base = []
     if contrato.tipo_contrato.lower() == "compraventa" or (
@@ -356,8 +360,8 @@ def generar_clausulas_predeterminadas(nro_contrato: int) -> List[ClausulaBO]:
                 "La posesión real, efectiva y legal del inmueble se entregará en el acto de firma de la escritura traslativa de dominio ante el Escribano designado por la parte compradora.",
             ),
             (
-                "CUARTA (COMISIÓN DEL AGENTE INMOBILIARIO)",
-                f"El AGENTE INMOBILIARIO cobra una comisión del {comision_fmt} (${monto_comision_agente_fmt}) por la celebración del presente contrato de compraventa, abonada en este acto al firmar el acuerdo.",
+                "CUARTA (HONORARIOS DE INTERMEDIACIÓN INMOBILIARIA)",
+                f"Las partes pactan un honorario profesional por intermediación inmobiliaria del {comision_fmt} (${monto_honorarios_totales_fmt}) por la celebración del presente contrato de compraventa, abonado en este acto.",
             ),
             (
                 "QUINTA (GASTOS E IMPUESTOS)",
@@ -387,8 +391,8 @@ def generar_clausulas_predeterminadas(nro_contrato: int) -> List[ClausulaBO]:
                 "El pago del alquiler se efectuará mediante transferencia bancaria a la cuenta designada o presencialmente en el domicilio del AGENTE INMOBILIARIO / LOCADOR.",
             ),
             (
-                "CUARTA (COMISIÓN DEL AGENTE INMOBILIARIO)",
-                f"El AGENTE INMOBILIARIO cobra una comisión del {comision_fmt} (${monto_comision_agente_fmt}) al celebrarse la firma del presente contrato de locación.",
+                "CUARTA (HONORARIOS DE INTERMEDIACIÓN INMOBILIARIA)",
+                f"Las partes pactan un honorario profesional por intermediación inmobiliaria del {comision_fmt} (${monto_honorarios_totales_fmt}) al celebrarse la firma del presente contrato de locación.",
             ),
             (
                 "QUINTA (EXPENSAS Y SERVICIOS)",
@@ -403,6 +407,7 @@ def generar_clausulas_predeterminadas(nro_contrato: int) -> List[ClausulaBO]:
                 "Para cualquier divergencia sobre la interpretación o cumplimiento de este contrato, las partes fijan domicilio y se someten a los Tribunales Ordinarios.",
             ),
         ]
+
 
     created = []
     for idx, (titulo, contenido) in enumerate(clausulas_base, 1):
@@ -433,11 +438,13 @@ def agregar_clausula_contrato(
     nro_contrato: int, titulo: str, contenido: str
 ) -> ClausulaBO:
     """
-    Añade una nueva cláusula a un contrato.
+    Añade una nueva cláusula a un contrato no firmado.
     """
     contrato = db.get_contrato_by_id(nro_contrato)
     if not contrato:
         raise ValueError("El contrato especificado no existe.")
+    if contrato.estado == "activo":
+        raise ValueError("El contrato ya ha sido firmado y no puede ser modificado. Solo está disponible para consulta e impresión.")
     if not titulo or not titulo.strip():
         raise ValueError("El título de la cláusula no puede estar vacío.")
     if not contenido or not contenido.strip():
@@ -459,11 +466,14 @@ def modificar_clausula_contrato(
     id_clausula: int, titulo: str, contenido: str
 ) -> ClausulaBO:
     """
-    Modifica una cláusula existente del contrato.
+    Modifica una cláusula existente de un contrato no firmado.
     """
     clausula = db.get_clausula_by_id(id_clausula)
     if not clausula:
         raise ValueError("La cláusula especificada no existe.")
+    contrato = db.get_contrato_by_id(clausula.nro_contrato)
+    if contrato and contrato.estado == "activo":
+        raise ValueError("El contrato ya ha sido firmado y no puede ser modificado. Solo está disponible para consulta e impresión.")
     if not titulo or not titulo.strip():
         raise ValueError("El título de la cláusula no puede estar vacío.")
     if not contenido or not contenido.strip():
@@ -476,33 +486,47 @@ def modificar_clausula_contrato(
 
 def eliminar_clausula_contrato(id_clausula: int) -> bool:
     """
-    Elimina/quita una cláusula del contrato.
+    Elimina/quita una cláusula de un contrato no firmado.
     """
     clausula = db.get_clausula_by_id(id_clausula)
     if not clausula:
         raise ValueError("La cláusula especificada no existe.")
+    contrato = db.get_contrato_by_id(clausula.nro_contrato)
+    if contrato and contrato.estado == "activo":
+        raise ValueError("El contrato ya ha sido firmado y no puede ser modificado. Solo está disponible para consulta e impresión.")
     return db.delete_clausula(id_clausula)
 
 
 def actualizar_comision_contrato(
-    nro_contrato: int, comision_porcentaje: float
+    nro_contrato: int,
+    comision_porcentaje: float,
+    comision_agente_porcentaje: Optional[float] = None,
 ) -> ContratoBO:
     """
-    Permite modificar/actualizar el porcentaje de comisión que cobra el agente para este contrato.
+    Permite modificar/actualizar los porcentajes de honorarios de inmobiliaria y comisión del agente.
     """
-    if comision_porcentaje < 0 or comision_porcentaje > 100:
-        raise ValueError("El porcentaje de comisión debe estar entre 0% y 100%.")
-
-    contrato = db.update_contrato_comision(nro_contrato, comision_porcentaje)
+    contrato = db.get_contrato_by_id(nro_contrato)
     if not contrato:
         raise ValueError("El contrato especificado no existe.")
-    return contrato
+    if contrato.estado == "activo":
+        raise ValueError("El contrato ya ha sido firmado y no puede ser modificado. Solo está disponible para consulta e impresión.")
+
+    if comision_porcentaje < 0 or comision_porcentaje > 100:
+        raise ValueError("El porcentaje de honorarios de la inmobiliaria debe estar entre 0% y 100%.")
+
+    if comision_agente_porcentaje is not None and (comision_agente_porcentaje < 0 or comision_agente_porcentaje > 100):
+        raise ValueError("El porcentaje de comisión del agente debe estar entre 0% y 100%.")
+
+    updated = db.update_contrato_comision(nro_contrato, comision_porcentaje, comision_agente_porcentaje)
+    if not updated:
+        raise ValueError("El contrato especificado no existe.")
+    return updated
 
 
 def obtener_detalles_contrato_completo(nro_contrato: int) -> dict:
     """
     Retorna un diccionario completo con todos los objetos de dominio involucrados en el contrato
-    (Contrato, Cliente, Agente, Propiedad, Propietario, Cláusulas y Comisión calculada del agente).
+    y los desglose de honorarios e inmobiliaria.
     """
     contrato = db.get_contrato_by_id(nro_contrato)
     if not contrato:
@@ -525,8 +549,11 @@ def obtener_detalles_contrato_completo(nro_contrato: int) -> dict:
         "propiedad": propiedad,
         "propietario": propietario,
         "clausulas": clausulas,
+        "monto_honorarios_totales": contrato.monto_honorarios_totales,
         "monto_comision_agente": contrato.monto_comision_agente,
+        "monto_comision_inmobiliaria": contrato.monto_comision_inmobiliaria,
     }
+
 
 
 

@@ -143,8 +143,10 @@ class ContratoTable(Base):
     id_propiedad = Column(Integer, ForeignKey("propiedad.id"), nullable=False)
     monto = Column(Numeric(12, 2), nullable=False, default=0.0)
     comision_porcentaje = Column(Numeric(5, 2), nullable=False, default=10.0)
+    comision_agente_porcentaje = Column(Numeric(5, 2), nullable=False, default=3.0)
     tipo_contrato = Column(String(50), default="Alquiler", nullable=False)  # Alquiler / Compraventa
     ruta_documento_respaldo = Column(String(500), nullable=True)
+
 
     cliente = relationship("ClienteTable", foreign_keys=[id_cliente])
     agente = relationship("AgenteTable", foreign_keys=[id_agente])
@@ -373,9 +375,11 @@ def to_bo_contrato(db_obj: Optional[ContratoTable]) -> Optional[ContratoBO]:
         id_propiedad=db_obj.id_propiedad,
         monto=float(db_obj.monto),
         comision_porcentaje=float(db_obj.comision_porcentaje),
+        comision_agente_porcentaje=float(getattr(db_obj, "comision_agente_porcentaje", 3.0) or 3.0),
         tipo_contrato=getattr(db_obj, "tipo_contrato", "Alquiler") or "Alquiler",
         ruta_documento_respaldo=getattr(db_obj, "ruta_documento_respaldo", None),
     )
+
 
 
 def to_bo_pago_inquilino(
@@ -704,6 +708,7 @@ def save_contrato(bo: ContratoBO) -> ContratoBO:
                 db_obj.id_propiedad = bo.id_propiedad
                 db_obj.monto = bo.monto
                 db_obj.comision_porcentaje = bo.comision_porcentaje
+                db_obj.comision_agente_porcentaje = bo.comision_agente_porcentaje
                 db_obj.tipo_contrato = bo.tipo_contrato
                 db_obj.ruta_documento_respaldo = bo.ruta_documento_respaldo
         else:
@@ -716,9 +721,11 @@ def save_contrato(bo: ContratoBO) -> ContratoBO:
                 id_propiedad=bo.id_propiedad,
                 monto=bo.monto,
                 comision_porcentaje=bo.comision_porcentaje,
+                comision_agente_porcentaje=bo.comision_agente_porcentaje,
                 tipo_contrato=bo.tipo_contrato,
                 ruta_documento_respaldo=bo.ruta_documento_respaldo,
             )
+
             db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
@@ -1123,7 +1130,9 @@ def delete_clausula(id_clausula: int) -> bool:
 
 
 def update_contrato_comision(
-    nro_contrato: int, nueva_comision: float
+    nro_contrato: int,
+    comision_porcentaje: float,
+    comision_agente_porcentaje: Optional[float] = None,
 ) -> Optional[ContratoBO]:
     db = SessionLocal()
     try:
@@ -1133,11 +1142,14 @@ def update_contrato_comision(
             .first()
         )
         if obj:
-            obj.comision_porcentaje = nueva_comision
+            obj.comision_porcentaje = comision_porcentaje
+            if comision_agente_porcentaje is not None:
+                obj.comision_agente_porcentaje = comision_agente_porcentaje
             db.commit()
             db.refresh(obj)
             return to_bo_contrato(obj)
         return None
     finally:
         db.close()
+
 

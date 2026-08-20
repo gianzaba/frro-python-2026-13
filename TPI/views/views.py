@@ -428,6 +428,9 @@ def contrato_crear():
                 comision_porcentaje = (
                     request.form.get("comision_porcentaje", type=float) or 10.0
                 )
+                comision_agente_porcentaje = (
+                    request.form.get("comision_agente_porcentaje", type=float) or 3.0
+                )
                 tipo_contrato = request.form.get("tipo_contrato", "Alquiler")
 
                 # Manejo de archivo adjunto (contrato físico / garantías PDF o imágenes)
@@ -447,6 +450,7 @@ def contrato_crear():
                     id_propiedad,
                     monto,
                     comision_porcentaje,
+                    comision_agente_porcentaje=comision_agente_porcentaje,
                     tipo_contrato=tipo_contrato,
                     ruta_documento_respaldo=ruta_documento,
                 )
@@ -470,12 +474,12 @@ def contrato_firmar(nro_contrato: int):
     try:
         controller.firmar_contrato(nro_contrato)
         flash(
-            f"Contrato N° {nro_contrato} firmado y activado exitosamente.",
+            f"Contrato N° {nro_contrato} firmado y activado exitosamente. Las cláusulas y porcentajes han quedado bloqueados e inmutables.",
             "success",
         )
     except ValueError as e:
         flash(str(e), "danger")
-    return redirect(url_for("views.contratos_list"))
+    return redirect(url_for("views.contrato_detalle", nro_contrato=nro_contrato))
 
 
 @views_blueprint.route("/contratos/<int:nro_contrato>/detalle")
@@ -546,18 +550,20 @@ def clausula_eliminar(nro_contrato: int, id_clausula: int):
 @login_required
 def contrato_comision_actualizar(nro_contrato: int):
     comision_porcentaje = request.form.get("comision_porcentaje", type=float)
+    comision_agente_porcentaje = request.form.get("comision_agente_porcentaje", type=float)
+
     if comision_porcentaje is None:
-        flash("Debe ingresar un porcentaje de comisión válido.", "danger")
+        flash("Debe ingresar un porcentaje de honorarios válido.", "danger")
         return redirect(
             url_for("views.contrato_detalle", nro_contrato=nro_contrato)
         )
 
     try:
         controller.actualizar_comision_contrato(
-            nro_contrato, comision_porcentaje
+            nro_contrato, comision_porcentaje, comision_agente_porcentaje
         )
         flash(
-            f"Porcentaje de comisión del agente actualizado a {comision_porcentaje}%.",
+            "Porcentajes de honorarios y comisión actualizados exitosamente.",
             "success",
         )
     except ValueError as e:
@@ -565,6 +571,7 @@ def contrato_comision_actualizar(nro_contrato: int):
     return redirect(
         url_for("views.contrato_detalle", nro_contrato=nro_contrato)
     )
+
 
 
 @views_blueprint.route("/contratos/<int:nro_contrato>/imprimir")

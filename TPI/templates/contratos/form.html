@@ -67,9 +67,17 @@
             </div>
             
             <div class="form-group">
-                <label for="comision_porcentaje">Porcentaje de Comisión (%)</label>
+                <label for="comision_porcentaje">Honorarios Totales Inmobiliarios (%)</label>
                 <input type="number" id="comision_porcentaje" name="comision_porcentaje" step="0.1" min="0" max="100" value="10.0" required>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.2rem;">Porcentaje total visible para el cliente (Ej: 10% Alquiler, 3% Venta).</small>
             </div>
+
+            <div class="form-group">
+                <label for="comision_agente_porcentaje">Comisión Interna del Agente (%)</label>
+                <input type="number" id="comision_agente_porcentaje" name="comision_agente_porcentaje" step="0.1" min="0" max="100" value="3.0" required>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.2rem;">Porcentaje interno reservado para el agente interviniente.</small>
+            </div>
+
 
             <div class="form-group form-group-full">
                 <label for="documento_respaldo">Documento de Respaldo (PDF, Imagen de Garantías/Contrato)</label>

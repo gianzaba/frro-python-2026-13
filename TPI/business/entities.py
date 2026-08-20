@@ -87,6 +87,7 @@ class Contrato:
         id_propiedad: Optional[int] = None,
         monto: float = 0.0,
         comision_porcentaje: float = 10.0,
+        comision_agente_porcentaje: float = 3.0,
         tipo_contrato: str = "Alquiler",
         ruta_documento_respaldo: Optional[str] = None,
     ):
@@ -99,13 +100,25 @@ class Contrato:
         self.id_propiedad = id_propiedad
         self.monto = monto
         self.comision_porcentaje = comision_porcentaje
+        self.comision_agente_porcentaje = comision_agente_porcentaje
         self.tipo_contrato = tipo_contrato
         self.ruta_documento_respaldo = ruta_documento_respaldo
 
     @property
-    def monto_comision_agente(self) -> float:
-        """Calcula el monto que cobra el agente al celebrarse el contrato."""
+    def monto_honorarios_totales(self) -> float:
+        """Calcula el honorario total cobrado por la intermediación inmobiliaria."""
         return round(self.monto * (self.comision_porcentaje / 100.0), 2)
+
+    @property
+    def monto_comision_agente(self) -> float:
+        """Calcula la comisión que le corresponde al agente interviniente."""
+        return round(self.monto * (self.comision_agente_porcentaje / 100.0), 2)
+
+    @property
+    def monto_comision_inmobiliaria(self) -> float:
+        """Calcula el saldo neto retenido por la agencia inmobiliaria."""
+        return round(max(0.0, self.monto_honorarios_totales - self.monto_comision_agente), 2)
+
 
 
 class Clausula:
