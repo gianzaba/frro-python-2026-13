@@ -116,9 +116,9 @@ def test_business_rule_1_signing_property_not_available():
     assert updated_prop.estado == "alquilada"
 
 
-def test_business_rule_2_agent_assignment_overlaps():
+def test_business_rule_2_agent_multiple_property_assignments():
     """
-    Rule 2: An agent cannot have overlapping active assignments.
+    Rule 2: An agent CAN be assigned to multiple properties simultaneously.
     """
     agent = controller.registrar_agente(
         "Agent",
@@ -143,33 +143,27 @@ def test_business_rule_2_agent_assignment_overlaps():
 
     now = datetime.now()
 
-    # Assign agent to prop1 for 10 days
-    controller.asignar_agente_a_propiedad(
-        agent.id, prop1.id, desde=now, hasta=now + timedelta(days=10)
+    # Assign agent to prop1
+    assoc1 = controller.asignar_agente_a_propiedad(
+        agent.id, prop1.id, desde=now
     )
+    assert assoc1.id_agente == agent.id
+    assert assoc1.id_propiedad == prop1.id
 
-    # Assigning to prop2 in a completely different period (should succeed)
-    controller.asignar_agente_a_propiedad(
-        agent.id,
-        prop2.id,
-        desde=now + timedelta(days=15),
-        hasta=now + timedelta(days=20),
+    # Assign same agent to prop2 concurrently (should succeed!)
+    assoc2 = controller.asignar_agente_a_propiedad(
+        agent.id, prop2.id, desde=now
     )
+    assert assoc2.id_agente == agent.id
+    assert assoc2.id_propiedad == prop2.id
 
-    # Overlapping assignment 1: start date lies inside the first assignment (should fail)
-    with pytest.raises(ValueError, match="ya está asignado"):
-        controller.asignar_agente_a_propiedad(
-            agent.id,
-            prop2.id,
-            desde=now + timedelta(days=5),
-            hasta=now + timedelta(days=12),
-        )
+    # Verify both assignments exist and are active
+    active1 = controller.obtener_asignacion_activa_propiedad(prop1.id)
+    active2 = controller.obtener_asignacion_activa_propiedad(prop2.id)
 
-    # Overlapping assignment 2: assignment is indefinite, starting inside the first period (should fail)
-    with pytest.raises(ValueError, match="ya está asignado"):
-        controller.asignar_agente_a_propiedad(
-            agent.id, prop2.id, desde=now + timedelta(days=8)
-        )
+    assert active1 is not None and active1.id_agente == agent.id
+    assert active2 is not None and active2.id_agente == agent.id
+
 
 
 def test_business_rule_3_agent_performing_contract_must_be_assigned():

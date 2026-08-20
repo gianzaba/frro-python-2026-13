@@ -176,7 +176,7 @@ def asignar_agente_a_propiedad(
 ) -> AgenteAsignadoBO:
     """
     Asigna un agente a una propiedad.
-    REGLA DE NEGOCIO 2: El agente no debe tener otra asignación activa que se superponga.
+    Un agente inmobiliario puede estar asignado a múltiples propiedades simultáneamente.
     """
     agente = db.get_agente_by_id(id_agente)
     if not agente:
@@ -191,22 +191,16 @@ def asignar_agente_a_propiedad(
             "La fecha de inicio de asignación debe ser anterior a la fecha de fin."
         )
 
-    # Validar superposición de asignaciones para este agente
-    assignments = db.get_active_assignments_by_agent(id_agente)
-    for assoc in assignments:
-        # Rule: agent cannot be assigned if they have overlaps in this period
-        a_start = assoc.fecha_hora_desde
-        a_end = assoc.fecha_hora_hasta or datetime.max
-
-        b_start = desde
-        b_end = hasta or datetime.max
-
-        if a_start <= b_end and b_start <= a_end:
-            raise ValueError(
-                f"El agente ya está asignado a la propiedad con ID {assoc.id_propiedad} "
-                f"en un período que se superpone ({a_start.strftime('%Y-%m-%d %H:%M')} - "
-                f"{assoc.fecha_hora_hasta.strftime('%Y-%m-%d %H:%M') if assoc.fecha_hora_hasta else 'actualidad'})."
-            )
+    # Si la propiedad ya tiene una asignación activa previa con otro agente, se finaliza esa asignación
+    active_assoc = db.get_active_agent_assignment_for_property(id_propiedad)
+    if active_assoc:
+        if active_assoc.id_agente == id_agente:
+            # El agente ya está asignado activamente a esta propiedad
+            return active_assoc
+        else:
+            # Finalizar asignación anterior de esta propiedad
+            active_assoc.fecha_hora_hasta = desde
+            db.save_agente_asignado(active_assoc)
 
     bo = AgenteAsignadoBO(
         id_agente=id_agente,
@@ -215,6 +209,7 @@ def asignar_agente_a_propiedad(
         fecha_hora_hasta=hasta,
     )
     return db.save_agente_asignado(bo)
+
 
 
 def solicitar_contrato(
