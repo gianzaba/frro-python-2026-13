@@ -108,7 +108,6 @@ def test_clausulas_predeterminadas_alquiler_y_compraventa():
         tipo_contrato="Compraventa",
     )
 
-
     clausulas_ven = controller.listar_clausulas_contrato(contrato_ven.nro_contrato)
     assert len(clausulas_ven) >= 5
     assert "VENDEDOR" in clausulas_ven[0].contenido
@@ -178,7 +177,6 @@ def test_crud_clausulas_y_modificacion_comision_agente():
     assert updated_contrato.comision_porcentaje == 12.5
     assert updated_contrato.monto_honorarios_totales == 25000.0
     assert updated_contrato.monto_comision_agente == 8000.0
-
 
     # 2. Agregar nueva cláusula
     nueva_cl = controller.agregar_clausula_contrato(
@@ -288,4 +286,3 @@ def test_desglose_honorarios_e_inmutabilidad_al_firmar():
 
         with pytest.raises(ValueError, match="El contrato ya ha sido firmado"):
             controller.eliminar_clausula_contrato(clausulas[0].id)
-

@@ -2,27 +2,37 @@
 
 {% block title %}Contratos{% endblock %}
 
+{% block head %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+{% endblock %}
+
 {% block content %}
-<header>
+<div class="page-header">
     <div>
-        <h1>Gestión de Contratos</h1>
-        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Contratos de alquiler y venta gestionados por los agentes</p>
+        <h1><i class="bi bi-file-earmark-text-fill" style="color: #818cf8;"></i> Gestión de Contratos</h1>
+        <p class="subtitle">Contratos de locación y compraventa gestionados por agentes comerciales</p>
     </div>
-    <a href="{{ url_for('views.contrato_crear') }}" class="btn btn-primary">📝 Nueva Solicitud de Contrato</a>
-</header>
+    <a href="{{ url_for('views.contrato_crear') }}" class="btn btn-primary">
+        <i class="bi bi-file-earmark-plus-fill"></i> Nueva Solicitud
+    </a>
+</div>
 
 <div class="card">
-    <h2>Listado de Contratos y Solicitudes</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <h2><i class="bi bi-folder2-open" style="color: #818cf8;"></i> Cartera Contractual</h2>
+        <span class="badge badge-admin">{{ contratos|length }} Contratos</span>
+    </div>
     
     <div class="table-container">
         {% if contratos %}
-        <table>
+        <table id="tabla-contratos" class="display compact" style="width: 100%;">
             <thead>
                 <tr>
                     <th>N° Contrato</th>
                     <th>Tipo</th>
                     <th>Propiedad</th>
-                    <th>Cliente</th>
+                    <th>Inquilino / Cliente</th>
                     <th>Agente Realizador</th>
                     <th>Comisión Agente</th>
                     <th>Estado</th>
@@ -34,23 +44,27 @@
                 <tr>
                     <td><strong>#{{ item.contrato.nro_contrato }}</strong></td>
                     <td>
-                        <span class="badge badge-secondary" style="text-transform: capitalize;">
+                        <span class="badge badge-admin" style="font-size: 0.72rem;">
                             {{ item.contrato.tipo_contrato }}
                         </span>
                     </td>
                     <td>
                         {% if item.propiedad %}
-                            <div style="font-weight: 500;">{{ item.propiedad.direccion }}</div>
-                            <span style="font-size: 0.8rem; color: var(--text-secondary);">Zona: {{ item.propiedad.zona }}</span>
+                            <div style="font-weight: 600; color: #ffffff;">{{ item.propiedad.direccion }}</div>
+                            <span style="font-size: 0.76rem; color: var(--text-muted);">{{ item.propiedad.zona }}</span>
                         {% else %}
-                            <span style="color: var(--text-secondary);">Propiedad eliminada</span>
+                            <span style="color: var(--text-muted); font-style: italic;">Propiedad eliminada</span>
                         {% endif %}
                     </td>
                     <td>{{ item.cliente.nombre_completo }}</td>
-                    <td>👤 {{ item.agente.nombre_completo }}</td>
                     <td>
-                        <div><strong>${{ "%.2f"|format(item.contrato.monto_comision_agente) }}</strong></div>
-                        <span style="font-size: 0.75rem; color: var(--text-secondary);">({{ item.contrato.comision_porcentaje }}%)</span>
+                        <span style="color: #818cf8; font-weight: 500;">
+                            <i class="bi bi-person-fill"></i> {{ item.agente.nombre_completo }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-weight: 700; color: #34d399;">${{ "%.2f"|format(item.contrato.monto_comision_agente) }}</div>
+                        <span style="font-size: 0.72rem; color: var(--text-muted);">({{ item.contrato.comision_porcentaje }}% honorario)</span>
                     </td>
                     <td>
                         <span class="badge badge-{{ item.contrato.estado }}">
@@ -58,16 +72,23 @@
                         </span>
                     </td>
                     <td>
-                        <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
-                            <a href="{{ url_for('views.contrato_detalle', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-secondary btn-sm" title="Ver y editar cláusulas o comisión">
-                                📄 Cláusulas
+                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            <a href="{{ url_for('views.contrato_detalle', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-secondary btn-sm" title="Ver Detalle, Cláusulas y Reclamos">
+                                <i class="bi bi-file-earmark-ruled"></i> Detalle
                             </a>
-                            <a href="{{ url_for('views.contrato_imprimir', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-primary btn-sm" target="_blank" title="Imprimir contrato listo para firmar">
-                                🖨️ Imprimir
+                            {% if item.contrato.estado == 'activo' %}
+                            <a href="{{ url_for('views.reclamo_nuevo', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-secondary btn-sm" title="Registrar Reclamo / Incidencia">
+                                <i class="bi bi-tools"></i> Reclamo
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('views.contrato_imprimir', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-secondary btn-sm" target="_blank" title="Imprimir Contrato Legal">
+                                <i class="bi bi-printer"></i>
                             </a>
                             {% if item.contrato.estado == 'solicitado' %}
                             <form action="{{ url_for('views.contrato_firmar', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;">
-                                <button type="submit" class="btn btn-success btn-sm">✍️ Firmar</button>
+                                <button type="submit" class="btn btn-success btn-sm" title="Firmar y Celebrar Contrato">
+                                    <i class="bi bi-pen"></i> Firmar
+                                </button>
                             </form>
                             {% endif %}
                         </div>
@@ -77,9 +98,28 @@
             </tbody>
         </table>
         {% else %}
-        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No hay contratos registrados actualmente.</p>
+        <div class="alert alert-info" style="justify-content: center; padding: 2rem;">
+            <i class="bi bi-info-circle" style="font-size: 1.2rem;"></i> No hay contratos registrados actualmente en la cartera.
+        </div>
         {% endif %}
     </div>
 </div>
 {% endblock %}
 
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#tabla-contratos').DataTable({
+        "language": {
+            "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+        },
+        "pageLength": 10,
+        "ordering": true,
+        "autoWidth": false,
+        "responsive": true
+    });
+});
+</script>
+{% endblock %}

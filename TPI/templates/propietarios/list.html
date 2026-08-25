@@ -2,21 +2,31 @@
 
 {% block title %}Propietarios{% endblock %}
 
+{% block head %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+{% endblock %}
+
 {% block content %}
-<header>
+<div class="page-header">
     <div>
-        <h1>Gestión de Propietarios</h1>
-        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Dueños de las propiedades comercializadas por la inmobiliaria</p>
+        <h1><i class="bi bi-person-badge-fill" style="color: #818cf8;"></i> Gestión de Propietarios</h1>
+        <p class="subtitle">Titulares y dueños de las propiedades comercializadas por la inmobiliaria</p>
     </div>
-    <a href="{{ url_for('views.propietario_crear') }}" class="btn btn-primary">➕ Registrar Propietario</a>
-</header>
+    <a href="{{ url_for('views.propietario_crear') }}" class="btn btn-primary">
+        <i class="bi bi-person-plus-fill"></i> Registrar Propietario
+    </a>
+</div>
 
 <div class="card">
-    <h2>Listado de Propietarios</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <h2><i class="bi bi-person-lines-fill" style="color: #818cf8;"></i> Listado de Propietarios</h2>
+        <span class="badge badge-admin">{{ propietarios|length }} Registros</span>
+    </div>
     
     <div class="table-container">
         {% if propietarios %}
-        <table>
+        <table id="tabla-propietarios" class="display compact" style="width: 100%;">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -30,19 +40,39 @@
             <tbody>
                 {% for p in propietarios %}
                 <tr>
-                    <td>{{ p.id }}</td>
-                    <td>{{ p.tipo_doc }} {{ p.nro_doc }}</td>
-                    <td style="font-weight: 500;">{{ p.nombre_completo }}</td>
+                    <td><strong>#{{ p.id }}</strong></td>
+                    <td><span class="badge badge-admin" style="font-size: 0.72rem;">{{ p.tipo_doc }} {{ p.nro_doc }}</span></td>
+                    <td style="font-weight: 600; color: #ffffff;">{{ p.nombre_completo }}</td>
                     <td>{{ p.domicilio }}</td>
-                    <td>{{ p.telefono }}</td>
-                    <td>{{ p.email }}</td>
+                    <td><i class="bi bi-telephone" style="color: var(--text-muted);"></i> {{ p.telefono }}</td>
+                    <td><i class="bi bi-envelope" style="color: var(--text-muted);"></i> {{ p.email }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
         {% else %}
-        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No hay propietarios registrados en el sistema.</p>
+        <div class="alert alert-info" style="justify-content: center; padding: 2rem;">
+            <i class="bi bi-info-circle" style="font-size: 1.2rem;"></i> No hay propietarios registrados en el sistema.
+        </div>
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#tabla-propietarios').DataTable({
+        "language": {
+            "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+        },
+        "pageLength": 10,
+        "ordering": true,
+        "autoWidth": false,
+        "responsive": true
+    });
+});
+</script>
 {% endblock %}

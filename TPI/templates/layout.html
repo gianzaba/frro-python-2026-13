@@ -3,62 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}InmoGestión{% endblock %} - Backoffice Inmobiliario B2B</title>
+    <title>{% block title %}InmoGestión{% endblock %} - Backoffice B2B Inmobiliario</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Custom Design System CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
     {% block head %}{% endblock %}
 </head>
 <body>
     <div class="app-container">
         <!-- Mobile Topbar Header -->
-        <div class="mobile-topbar">
-            <div class="brand" style="margin-bottom: 0;">
-                <span>✦</span> InmoGestión B2B
+        <header class="mobile-topbar">
+            <div class="mobile-brand">
+                <i class="bi bi-buildings-fill" style="color: #818cf8;"></i> InmoGestión <span class="brand-badge">B2B</span>
             </div>
-            <button class="mobile-toggle-btn" onclick="toggleSidebar()">☰</button>
-        </div>
+            <button type="button" class="mobile-toggle-btn" onclick="toggleSidebar()" aria-label="Abrir Menú">
+                <i class="bi bi-list"></i>
+            </button>
+        </header>
+
+        <!-- Mobile Backdrop Overlay -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="brand">
-                <span>✦</span> InmoGestión
+                <i class="bi bi-buildings-fill" style="color: #818cf8; font-size: 1.45rem;"></i>
+                <span>InmoGestión</span>
+                <span class="brand-badge">B2B</span>
             </div>
             
             {% if logged_in %}
+            <div class="nav-section-title">Gestión Principal</div>
             <ul class="nav-links">
                 <li class="{% if request.path == '/' or request.path == '/dashboard' %}active{% endif %}">
-                    <a href="{{ url_for('views.dashboard') }}">📊 Dashboard</a>
+                    <a href="{{ url_for('views.dashboard') }}">
+                        <i class="bi bi-grid-1x2-fill"></i>
+                        <span>Dashboard</span>
+                    </a>
                 </li>
                 <li class="{% if request.path.startswith('/propiedades') %}active{% endif %}">
-                    <a href="{{ url_for('views.propiedades_list') }}">🏠 Propiedades</a>
+                    <a href="{{ url_for('views.propiedades_list') }}">
+                        <i class="bi bi-house-door-fill"></i>
+                        <span>Propiedades</span>
+                    </a>
                 </li>
                 <li class="{% if request.path.startswith('/clientes') %}active{% endif %}">
-                    <a href="{{ url_for('views.clientes_list') }}">👥 Clientes</a>
+                    <a href="{{ url_for('views.clientes_list') }}">
+                        <i class="bi bi-people-fill"></i>
+                        <span>Clientes</span>
+                    </a>
                 </li>
                 <li class="{% if request.path.startswith('/propietarios') %}active{% endif %}">
-                    <a href="{{ url_for('views.propietarios_list') }}">🔑 Propietarios</a>
+                    <a href="{{ url_for('views.propietarios_list') }}">
+                        <i class="bi bi-person-badge-fill"></i>
+                        <span>Propietarios</span>
+                    </a>
                 </li>
                 <li class="{% if request.path.startswith('/contratos') %}active{% endif %}">
-                    <a href="{{ url_for('views.contratos_list') }}">📜 Contratos</a>
+                    <a href="{{ url_for('views.contratos_list') }}">
+                        <i class="bi bi-file-earmark-text-fill"></i>
+                        <span>Contratos</span>
+                    </a>
+                </li>
+                <li class="{% if request.path.startswith('/reclamos') %}active{% endif %}">
+                    <a href="{{ url_for('views.reclamos_dashboard') }}">
+                        <i class="bi bi-tools"></i>
+                        <span>Reclamos & Averías</span>
+                    </a>
                 </li>
                 <li class="{% if request.path.startswith('/finanzas') %}active{% endif %}">
-                    <a href="{{ url_for('views.finanzas_dashboard') }}">💵 Finanzas</a>
+                    <a href="{{ url_for('views.finanzas_dashboard') }}">
+                        <i class="bi bi-cash-stack"></i>
+                        <span>Finanzas & Cajas</span>
+                    </a>
                 </li>
             </ul>
+
+            {% if es_admin %}
+            <div class="nav-section-title">Administración</div>
+            <ul class="nav-links">
+                <li class="{% if request.path.startswith('/agentes') %}active{% endif %}">
+                    <a href="{{ url_for('views.agentes_list') }}">
+                        <i class="bi bi-person-gear"></i>
+                        <span>Gestión de Agentes</span>
+                    </a>
+                </li>
+            </ul>
+            {% endif %}
             
             <div class="user-panel">
-                <div class="user-info">
-                    <span class="user-label">Agente Conectado:</span>
-                    <div class="user-name">
-                        {{ current_username }}
-                        <span class="badge {% if es_admin %}badge-activo{% else %}badge-solicitado{% endif %}">{{ agente_rol }}</span>
+                <div class="user-card">
+                    <div class="user-avatar">
+                        {{ current_username[:1]|upper if current_username else 'A' }}
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name-title" title="{{ current_username }}">
+                            {{ current_username }}
+                        </div>
+                        <div class="user-role-badge">
+                            <span class="badge {% if es_admin %}badge-admin{% else %}badge-solicitado{% endif %}" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">
+                                <i class="bi {% if es_admin %}bi-shield-check{% else %}bi-person-check{% endif %}"></i> {{ agente_rol }}
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <a href="{{ url_for('views.logout') }}" class="btn btn-secondary btn-sm">🚪 Cerrar Sesión</a>
+                <a href="{{ url_for('views.logout') }}" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: center;">
+                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                </a>
             </div>
             {% else %}
+            <div class="nav-section-title">Acceso</div>
             <ul class="nav-links">
                 <li class="active">
-                    <a href="{{ url_for('views.login') }}">🔑 Iniciar Sesión</a>
+                    <a href="{{ url_for('views.login') }}">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>Iniciar Sesión</span>
+                    </a>
                 </li>
             </ul>
             {% endif %}
@@ -72,7 +141,11 @@
                     <div class="flash-container">
                         {% for category, message in messages %}
                             <div class="alert alert-{{ category }}">
-                                {{ message }}
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'danger' %}bi-exclamation-triangle-fill{% elif category == 'warning' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: currentColor; opacity: 0.7; cursor: pointer; font-size: 1.1rem; line-height: 1;">&times;</button>
                             </div>
                         {% endfor %}
                     </div>
@@ -87,8 +160,12 @@
     <script>
     function toggleSidebar() {
         var sb = document.getElementById('sidebar');
+        var bd = document.getElementById('sidebar-backdrop');
         if (sb) {
             sb.classList.toggle('active');
+        }
+        if (bd) {
+            bd.classList.toggle('active');
         }
     }
     </script>

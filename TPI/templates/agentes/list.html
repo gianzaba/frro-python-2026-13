@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+
+{% block title %}Gestión de Agentes Comerciales{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-person-gear" style="color: #818cf8;"></i> Gestión de Agentes Comerciales</h1>
+        <p class="subtitle">Panel exclusivo de Administración para el control y alta del equipo inmobiliario.</p>
+    </div>
+    <div>
+        <a href="{{ url_for('views.agente_crear') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus-fill"></i> Cargar Nuevo Agente
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th># ID</th>
+                    <th>Nombre Completo</th>
+                    <th>Email / Acceso</th>
+                    <th>Rol en el Sistema</th>
+                    <th>Matrícula</th>
+                    <th>CUIL</th>
+                    <th>Documento</th>
+                    <th>Teléfono</th>
+                    <th>Domicilio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if agentes %}
+                    {% for a in agentes %}
+                        <tr>
+                            <td><strong>#{{ a.id }}</strong></td>
+                            <td>
+                                <div style="font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                                    <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                                        {{ a.nombre[:1]|upper }}
+                                    </div>
+                                    {{ a.nombre_completo }}
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-family: monospace; font-size: 0.85rem; color: #818cf8;">{{ a.email }}</span>
+                            </td>
+                            <td>
+                                {% if a.rol == 'Administrador' %}
+                                    <span class="badge badge-admin">
+                                        <i class="bi bi-shield-check"></i> Administrador
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-solicitado">
+                                        <i class="bi bi-person-check"></i> Estándar
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-info" style="font-size: 0.8rem;">
+                                    {{ a.matricula }}
+                                </span>
+                            </td>
+                            <td>{{ a.cuil }}</td>
+                            <td>{{ a.tipo_doc }} {{ a.nro_doc }}</td>
+                            <td>{{ a.telefono }}</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ a.domicilio }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            No hay agentes registrados en el sistema.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

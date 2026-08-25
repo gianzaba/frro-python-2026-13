@@ -3,58 +3,63 @@
 {% block title %}Nueva Solicitud de Contrato{% endblock %}
 
 {% block content %}
-<header>
+<div class="page-header">
     <div>
-        <h1>Crear Solicitud de Contrato</h1>
-        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Inicia una solicitud de alquiler o venta para un inmueble</p>
+        <h1><i class="bi bi-file-earmark-plus-fill" style="color: #818cf8;"></i> Crear Solicitud de Contrato</h1>
+        <p class="subtitle">Inicia una solicitud formal de locación o compraventa para un inmueble</p>
     </div>
-    <a href="{{ url_for('views.contratos_list') }}" class="btn btn-secondary">🠰 Volver al Listado</a>
-</header>
+    <a href="{{ url_for('views.contratos_list') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver al Listado
+    </a>
+</div>
 
-<div class="card" style="max-width: 800px; margin: 0 auto;">
-    <h2>Parámetros del Contrato</h2>
-    <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 2rem;">
-        REGLA DE NEGOCIO: El agente que realiza el contrato debe ser el asignado actualmente a la propiedad seleccionada. Solo se listan propiedades que cumplen esta condición y están disponibles.
-    </p>
+<div class="card" style="max-width: 820px; margin: 0 auto;">
+    <h2 style="margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.45rem;">
+        <i class="bi bi-file-earmark-check" style="color: #818cf8;"></i> Parámetros y Cláusulas Iniciales
+    </h2>
+    <div class="alert alert-info" style="margin-bottom: 1.5rem; font-size: 0.82rem;">
+        <i class="bi bi-shield-lock-fill"></i>
+        <span><strong>Regla de Negocio:</strong> El agente que realiza el contrato debe ser el asignado actualmente a la propiedad disponible.</span>
+    </div>
     
     <form action="{{ url_for('views.contrato_crear') }}" method="POST" enctype="multipart/form-data">
         <div class="form-grid">
             <div class="form-group form-group-full">
-                <label for="id_cliente">Cliente Solicitante</label>
+                <label for="id_cliente"><i class="bi bi-person"></i> Cliente Solicitante / Inquilino</label>
                 {% if clientes %}
                 <select id="id_cliente" name="id_cliente" required>
                     <option value="" disabled selected>Selecciona el cliente...</option>
                     {% for c in clientes %}
-                        <option value="{{ c.id }}">{{ c.nombre_completo }} (DNI: {{ c.nro_doc }})</option>
+                        <option value="{{ c.id }}">{{ c.nombre_completo }} ({{ c.tipo_doc }}: {{ c.nro_doc }})</option>
                     {% endfor %}
                 </select>
                 {% else %}
-                <div style="color: var(--danger); font-size: 0.9rem; padding: 0.5rem 0;">
-                    ⚠️ No hay clientes registrados en el sistema. Debes <a href="{{ url_for('views.cliente_crear') }}" style="color: var(--primary); font-weight: 600;">registrar un cliente</a> primero.
+                <div class="alert alert-warning" style="margin-top: 0.5rem;">
+                    <i class="bi bi-exclamation-triangle"></i> No hay clientes registrados. <a href="{{ url_for('views.cliente_crear') }}" style="color: #ffffff; font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">Registrar cliente</a>
                 </div>
                 {% endif %}
             </div>
             
             <div class="form-group form-group-full">
-                <label for="prop_agente">Propiedad Disponible y Agente Asignado</label>
+                <label for="prop_agente"><i class="bi bi-house-door"></i> Propiedad Disponible y Agente Asignado</label>
                 {% if propiedades %}
                 <select id="prop_agente" name="prop_agente" required>
                     <option value="" disabled selected>Selecciona la propiedad...</option>
                     {% for item in propiedades %}
                         <option value="{{ item.prop.id }}:{{ item.agente.id }}">
-                            {{ item.prop.direccion }} ({{ item.prop.tipo }}) - Agente: {{ item.agente.nombre_completo }}
+                            {{ item.prop.direccion }} ({{ item.prop.tipo }}) - Agente Comercial: {{ item.agente.nombre_completo }}
                         </option>
                     {% endfor %}
                 </select>
                 {% else %}
-                <div style="color: var(--danger); font-size: 0.9rem; padding: 0.5rem 0;">
-                    ⚠️ No hay propiedades disponibles con agentes asignados actualmente. Asigna un agente a una propiedad primero.
+                <div class="alert alert-warning" style="margin-top: 0.5rem;">
+                    <i class="bi bi-exclamation-triangle"></i> No hay propiedades disponibles con agentes asignados. Debes <a href="{{ url_for('views.propiedades_list') }}" style="color: #ffffff; font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">asignar un agente</a> primero.
                 </div>
                 {% endif %}
             </div>
 
             <div class="form-group">
-                <label for="tipo_contrato">Tipo de Operación</label>
+                <label for="tipo_contrato"><i class="bi bi-tag"></i> Tipo de Operación</label>
                 <select id="tipo_contrato" name="tipo_contrato" required>
                     <option value="Alquiler" selected>Alquiler</option>
                     <option value="Compraventa">Compraventa</option>
@@ -62,33 +67,34 @@
             </div>
 
             <div class="form-group">
-                <label for="monto">Monto Mensual / Precio total ($)</label>
+                <label for="monto"><i class="bi bi-currency-dollar"></i> Monto Mensual / Precio ($)</label>
                 <input type="number" id="monto" name="monto" step="0.01" min="0" placeholder="Ej. 150000" required>
             </div>
             
             <div class="form-group">
-                <label for="comision_porcentaje">Honorarios Totales Inmobiliarios (%)</label>
+                <label for="comision_porcentaje"><i class="bi bi-percent"></i> Honorario Total Inmobiliario (%)</label>
                 <input type="number" id="comision_porcentaje" name="comision_porcentaje" step="0.1" min="0" max="100" value="10.0" required>
-                <small style="color: var(--text-secondary); display: block; margin-top: 0.2rem;">Porcentaje total visible para el cliente (Ej: 10% Alquiler, 3% Venta).</small>
+                <small style="color: var(--text-muted);">Porcentaje total visible para el cliente (Ej: 10% Alquiler, 3% Venta).</small>
             </div>
 
             <div class="form-group">
-                <label for="comision_agente_porcentaje">Comisión Interna del Agente (%)</label>
+                <label for="comision_agente_porcentaje"><i class="bi bi-award"></i> Comisión Interna Agente (%)</label>
                 <input type="number" id="comision_agente_porcentaje" name="comision_agente_porcentaje" step="0.1" min="0" max="100" value="3.0" required>
-                <small style="color: var(--text-secondary); display: block; margin-top: 0.2rem;">Porcentaje interno reservado para el agente interviniente.</small>
+                <small style="color: var(--text-muted);">Porcentaje reservado para el agente comercial.</small>
             </div>
 
-
             <div class="form-group form-group-full">
-                <label for="documento_respaldo">Documento de Respaldo (PDF, Imagen de Garantías/Contrato)</label>
+                <label for="documento_respaldo"><i class="bi bi-paperclip"></i> Documento de Respaldo (PDF, Garantías, Imágenes)</label>
                 <input type="file" id="documento_respaldo" name="documento_respaldo" accept=".pdf,.png,.jpg,.jpeg">
-                <small style="color: var(--text-secondary); display: block; margin-top: 0.3rem;">Opcional: Adjunta copia digitalizada de las garantías o contrato físico.</small>
+                <small style="color: var(--text-muted);">Opcional: Adjunta copia digitalizada de las garantías o contrato físico.</small>
             </div>
         </div>
         
-        <div style="display: flex; gap: 1rem; margin-top: 2rem; justify-content: flex-end;">
+        <div style="display: flex; gap: 0.8rem; margin-top: 1.8rem; justify-content: flex-end;">
             <a href="{{ url_for('views.contratos_list') }}" class="btn btn-secondary">Cancelar</a>
-            <button type="submit" class="btn btn-primary" {% if not clientes or not propiedades %}disabled{% endif %}>Crear Solicitud</button>
+            <button type="submit" class="btn btn-primary" {% if not clientes or not propiedades %}disabled{% endif %}>
+                <i class="bi bi-check-circle-fill"></i> Crear Solicitud de Contrato
+            </button>
         </div>
     </form>
 </div>

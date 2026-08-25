@@ -1,24 +1,34 @@
 {% extends "layout.html" %}
 
-{% block title %}Detalle de Propiedad{% endblock %}
+{% block title %}Detalle de Propiedad #{{ p.id }}{% endblock %}
 
 {% block content %}
-<header>
+<div class="page-header">
     <div>
-        <h1>Detalle de Propiedad</h1>
-        <p style="color: var(--text-secondary); margin-top: 0.2rem;">ID de Propiedad: #{{ p.id }}</p>
+        <h1><i class="bi bi-house-door-fill" style="color: #818cf8;"></i> Ficha de Propiedad #{{ p.id }}</h1>
+        <p class="subtitle">{{ p.direccion }} ({{ p.zona }})</p>
     </div>
-    <a href="{{ url_for('views.propiedades_list') }}" class="btn btn-secondary">🠰 Volver al Listado</a>
-</header>
+    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+        <a href="{{ url_for('views.propiedad_visitas', id_propiedad=p.id) }}" class="btn btn-primary">
+            <i class="bi bi-calendar-event-fill"></i> Agenda de Visitas
+        </a>
+        <a href="{{ url_for('views.propiedades_list') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver al Listado
+        </a>
+    </div>
+</div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
     <!-- Propiedad Card -->
     <div class="card">
-        <h2>Información de Propiedad</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+            <h2><i class="bi bi-info-circle-fill" style="color: #818cf8;"></i> Información del Inmueble</h2>
+            <span class="badge badge-{{ p.estado }}">{{ p.estado }}</span>
+        </div>
         <div class="detail-grid">
             <div class="detail-item">
                 <span class="detail-label">Dirección</span>
-                <span class="detail-value">{{ p.direccion }}</span>
+                <span class="detail-value" style="font-weight: 600;">{{ p.direccion }}</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Zona / Barrio</span>
@@ -26,25 +36,25 @@
             </div>
             <div class="detail-item">
                 <span class="detail-label">Tipo de Operación</span>
-                <span class="detail-value">{{ p.tipo }}</span>
+                <span class="detail-value">
+                    <span class="badge badge-admin">{{ p.tipo }}</span>
+                </span>
             </div>
             <div class="detail-item">
-                <span class="detail-label">Estado</span>
-                <div>
-                    <span class="badge badge-{{ p.estado }}">{{ p.estado }}</span>
-                </div>
+                <span class="detail-label">Fecha Alta / Disponibilidad</span>
+                <span class="detail-value">{{ p.fecha_disponibilidad.strftime('%d/%m/%Y') if p.fecha_disponibilidad else '-' }}</span>
             </div>
         </div>
     </div>
 
     <!-- Propietario Card -->
     <div class="card">
-        <h2>Propietario del Inmueble</h2>
+        <h2 style="margin-bottom: 0.6rem;"><i class="bi bi-person-badge-fill" style="color: #f472b6;"></i> Propietario</h2>
         {% if propietario %}
         <div class="detail-grid">
             <div class="detail-item">
                 <span class="detail-label">Nombre y Apellido</span>
-                <span class="detail-value" style="color: #f472b6; font-weight: 600;">🔑 {{ propietario.nombre_completo }}</span>
+                <span class="detail-value" style="color: #f472b6; font-weight: 600;">{{ propietario.nombre_completo }}</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Documento</span>
@@ -60,54 +70,61 @@
             </div>
         </div>
         {% else %}
-        <p style="color: var(--text-secondary);">No se encontró información del propietario.</p>
+        <p style="color: var(--text-muted); font-style: italic;">No se encontró información del propietario.</p>
         {% endif %}
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
     <!-- Agente Asignado Card -->
     <div class="card">
-        <h2>Agente Asignado para Comercialización</h2>
+        <h2 style="margin-bottom: 0.6rem;"><i class="bi bi-person-check-fill" style="color: #818cf8;"></i> Agente Comercial Asignado</h2>
         {% if agente_asignado %}
-        <div class="detail-grid" style="margin-bottom: 1.5rem;">
+        <div class="detail-grid" style="margin-bottom: 1.2rem;">
             <div class="detail-item">
-                <span class="detail-label">Nombre Completo</span>
-                <span class="detail-value" style="color: #818cf8; font-weight: 600;">👤 {{ agente_asignado.nombre_completo }}</span>
+                <span class="detail-label">Agente Asignado</span>
+                <span class="detail-value" style="color: #818cf8; font-weight: 600;">{{ agente_asignado.nombre_completo }}</span>
             </div>
             <div class="detail-item">
-                <span class="detail-label">Matrícula Profesional</span>
+                <span class="detail-label">Matrícula</span>
                 <span class="detail-value">{{ agente_asignado.matricula }}</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Asignado Desde</span>
-                <span class="detail-value">{{ assignment.fecha_hora_desde.strftime('%Y-%m-%d %H:%M') }}</span>
+                <span class="detail-value">{{ assignment.fecha_hora_desde.strftime('%d/%m/%Y %H:%M') }}</span>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Asignado Hasta</span>
                 <span class="detail-value">
                     {% if assignment.fecha_hora_hasta %}
-                        {{ assignment.fecha_hora_hasta.strftime('%Y-%m-%d %H:%M') }}
+                        {{ assignment.fecha_hora_hasta.strftime('%d/%m/%Y %H:%M') }}
                     {% else %}
-                        Indefinido / Permanente
+                        Indefinido / Activo
                     {% endif %}
                 </span>
             </div>
         </div>
         {% else %}
-        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-style: italic;">No hay ningún agente asignado a este inmueble actualmente.</p>
+        <div class="alert alert-warning" style="margin-bottom: 1.2rem;">
+            <i class="bi bi-exclamation-circle"></i> No hay ningún agente comercial asignado a este inmueble actualmente.
+        </div>
         {% endif %}
         
-        {% if p.estado == 'disponible' %}
-        <a href="{{ url_for('views.propiedad_asignar', id_propiedad=p.id) }}" class="btn btn-primary" style="width: 100%;">
-            👤 {% if agente_asignado %}Reasignar / Cambiar Agente{% else %}Asignar Agente Comercial{% endif %}
-        </a>
-        {% endif %}
+        <div style="display: flex; gap: 0.6rem; flex-direction: column;">
+            {% if p.estado == 'disponible' %}
+            <a href="{{ url_for('views.propiedad_asignar', id_propiedad=p.id) }}" class="btn btn-primary" style="width: 100%;">
+                <i class="bi bi-person-plus-fill"></i> {% if agente_asignado %}Reasignar / Cambiar Agente{% else %}Asignar Agente Comercial{% endif %}
+            </a>
+            {% endif %}
+            <a href="{{ url_for('views.propiedad_visitas', id_propiedad=p.id) }}" class="btn btn-secondary" style="width: 100%; border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc;">
+                <i class="bi bi-calendar-event"></i> Ver Turnos de Visitas Agendados
+            </a>
+        </div>
     </div>
 
     <!-- Contratos Card -->
     <div class="card">
-        <h2>Contratos y Solicitudes</h2>
+        <h2 style="margin-bottom: 0.6rem;"><i class="bi bi-journal-text" style="color: #34d399;"></i> Historial de Solicitudes y Contratos</h2>
         <div class="table-container" style="max-height: 250px; overflow-y: auto;">
             {% if contratos %}
             <table>
@@ -116,20 +133,20 @@
                         <th>N°</th>
                         <th>Cliente</th>
                         <th>Estado</th>
-                        <th>Fecha Contrato</th>
+                        <th>Fecha</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for c in contratos %}
                     <tr>
-                        <td>{{ c.contrato.nro_contrato }}</td>
+                        <td><strong>#{{ c.contrato.nro_contrato }}</strong></td>
                         <td>{{ c.cliente.nombre_completo }}</td>
                         <td>
                             <span class="badge badge-{{ c.contrato.estado }}">{{ c.contrato.estado }}</span>
                         </td>
                         <td>
                             {% if c.contrato.fecha_contrato %}
-                                {{ c.contrato.fecha_contrato.strftime('%Y-%m-%d') }}
+                                {{ c.contrato.fecha_contrato.strftime('%d/%m/%Y') }}
                             {% else %}
                                 -
                             {% endif %}
@@ -139,7 +156,7 @@
                 </tbody>
             </table>
             {% else %}
-            <p style="color: var(--text-secondary); font-style: italic; text-align: center; padding: 2rem 0;">No se registran contratos para esta propiedad.</p>
+            <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem 0;">No se registran contratos para esta propiedad.</p>
             {% endif %}
         </div>
     </div>

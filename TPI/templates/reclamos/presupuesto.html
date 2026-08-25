@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe de Presupuesto #{{ reclamo.id }} - InmoGestión B2B</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --bg-light: #f8fafc;
+            --warning-bg: #fffbeb;
+            --warning-border: #fef3c7;
+            --warning-text: #b45309;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            color: var(--text);
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .document-container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 800px;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand h1 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .brand p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .doc-meta {
+            text-align: right;
+        }
+
+        .doc-meta h2 {
+            font-size: 1.25rem;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .badge-warning { background: #fef3c7; color: #b45309; }
+        .badge-danger { background: #fee2e2; color: #b91c1c; }
+        .badge-info { background: #e0e7ff; color: #4338ca; }
+        .badge-success { background: #dcfce7; color: #15803d; }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            margin: 1.8rem 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .info-box h3 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box p {
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+        }
+
+        .budget-card {
+            background: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .budget-amount {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #15803d;
+        }
+
+        .no-print-bar {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: #475569; color: white; }
+        .btn-secondary:hover { background: #334155; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .document-container { box-shadow: none; padding: 0; max-width: 100%; }
+            .no-print-bar { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="document-container">
+        
+        <!-- Header -->
+        <div class="header">
+            <div class="brand">
+                <h1><i class="bi bi-buildings-fill"></i> InmoGestión B2B</h1>
+                <p>Servicios Inmobiliarios & Administración de Propiedades</p>
+                <p>Av. Pellegrini 250, Rosario — Tel: (0341) 555-6677</p>
+            </div>
+            <div class="doc-meta">
+                <h2>INFORME TÉCNICO & PRESUPUESTO</h2>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+                    Reclamo <strong>#{{ reclamo.id }}</strong>
+                </p>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">
+                    Fecha de Emisión: <strong>{{ reclamo.fecha_reclamo.strftime('%d/%m/%Y') }}</strong>
+                </p>
+                <div style="margin-top: 0.5rem;">
+                    <span class="badge {% if reclamo.urgencia == 'Urgente' %}badge-danger{% elif reclamo.urgencia == 'Alta' %}badge-warning{% else %}badge-info{% endif %}">
+                        Urgencia: {{ reclamo.urgencia }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Destinatario & Inmueble -->
+        <div class="info-grid">
+            <div class="info-box">
+                <h3><i class="bi bi-person-badge"></i> Propietario (Destinatario)</h3>
+                <p><strong>{{ propietario.nombre_completo if propietario else 'Propietario Registrado' }}</strong></p>
+                <p>Documento: {{ propietario.tipo_doc }} {{ propietario.nro_doc if propietario else '-' }}</p>
+                <p>Email: {{ propietario.email if propietario else '-' }}</p>
+                <p>Teléfono: {{ propietario.telefono if propietario else '-' }}</p>
+            </div>
+            <div class="info-box">
+                <h3><i class="bi bi-house-door"></i> Inmueble en Locación</h3>
+                <p><strong>{{ propiedad.direccion if propiedad else 'N/A' }}</strong></p>
+                <p>Zona: {{ propiedad.zona }} ({{ propiedad.tipo }})</p>
+                <p>Contrato de Alquiler: <strong>#{{ contrato.nro_contrato }}</strong></p>
+                <p>Inquilino: {{ cliente.nombre_completo if cliente else 'Inquilino' }}</p>
+            </div>
+        </div>
+
+        <!-- Detalle de la Rotura / Desperfecto -->
+        <div class="section-title">
+            <i class="bi bi-tools"></i> Detalle del Desperfecto Estructural
+        </div>
+
+        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 6px; padding: 1.2rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span style="font-weight: 700; color: var(--primary);">Rubro / Categoría:</span>
+                <span style="font-weight: 600; background: #e0e7ff; color: #4338ca; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">
+                    {{ reclamo.tipo_dano }}
+                </span>
+            </div>
+            <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text); white-space: pre-line;">
+                {{ reclamo.descripcion }}
+            </p>
+        </div>
+
+        <!-- Presupuesto Estimado -->
+        <div class="section-title">
+            <i class="bi bi-calculator"></i> Presupuesto Estimado para Reparación
+        </div>
+
+        <div class="budget-card">
+            <div>
+                <h3 style="font-size: 1rem; color: #166534; margin-bottom: 0.25rem;">Monto Cotizado de Mano de Obra y Materiales</h3>
+                <p style="font-size: 0.85rem; color: #15803d;">Presupuesto preliminar para autorización del propietario.</p>
+            </div>
+            <div class="budget-amount">
+                ${{ "{:,.2f}".format(reclamo.presupuesto_estimado) }}
+            </div>
+        </div>
+
+        <!-- Estado y Observaciones -->
+        {% if reclamo.observaciones_resolucion %}
+        <div class="section-title">
+            <i class="bi bi-chat-square-text"></i> Observaciones Técnicas / Seguimiento
+        </div>
+        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.5;">
+            {{ reclamo.observaciones_resolucion }}
+        </div>
+        {% endif %}
+
+        <!-- Términos & Firma -->
+        <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px dashed var(--border); font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+            <p><strong>Nota importante para el Propietario:</strong> De acuerdo con la normativa locativa vigente y las cláusulas contractuales suscriptas, las reparaciones por vicios estructurales y deterioro normal corresponden a la parte locadora. Por favor, comuníquese con la administración para confirmar la ejecución o proponer un prestador alternativo.</p>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 3.5rem; padding: 0 1.5rem;">
+            <div style="text-align: center; width: 220px; border-top: 1px solid #475569; padding-top: 0.5rem; font-size: 0.8rem;">
+                Firma y Sello Inmobiliaria
+            </div>
+            <div style="text-align: center; width: 220px; border-top: 1px solid #475569; padding-top: 0.5rem; font-size: 0.8rem;">
+                Conformidad del Propietario
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Barra flotante de acciones -->
+    <div class="no-print-bar">
+        <a href="{{ url_for('views.reclamos_dashboard') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-printer-fill"></i> Imprimir / Guardar en PDF
+        </button>
+    </div>
+
+</body>
+</html>

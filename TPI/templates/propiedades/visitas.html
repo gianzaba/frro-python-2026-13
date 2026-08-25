@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block title %}Agenda de Visitas - {{ propiedad.direccion }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-calendar-event-fill" style="color: #818cf8;"></i> Agenda de Visitas a la Propiedad</h1>
+        <p class="subtitle">{{ propiedad.direccion }} ({{ propiedad.zona }}) - #{{ propiedad.id }}</p>
+    </div>
+    <div style="display: flex; gap: 0.6rem;">
+        <button type="button" onclick="document.getElementById('form-agendar-turno').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary">
+            <i class="bi bi-plus-circle-fill"></i> Crear Turno de Visita
+        </button>
+        <a href="{{ url_for('views.propiedad_detalle', id_propiedad=propiedad.id) }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a la Ficha
+        </a>
+    </div>
+</div>
+
+<!-- Grid of Scheduled Visit Slots -->
+<h2 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.45rem;">
+    <i class="bi bi-clock-history" style="color: #818cf8;"></i> Turnos Programados y Control de Cupos
+</h2>
+
+{% if agendas %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.4rem; margin-bottom: 2rem;">
+    {% for item in agendas %}
+    <div class="card" style="margin-bottom: 0; border: 1px solid {% if item.cupo_disponible == 0 %}rgba(239, 68, 68, 0.4){% else %}rgba(99, 102, 241, 0.3){% endif %};">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem;">
+            <div>
+                <h3 style="font-size: 1.1rem; color: #ffffff; display: flex; align-items: center; gap: 0.45rem;">
+                    <i class="bi bi-calendar-check" style="color: #818cf8;"></i> {{ item.agenda.fecha_hora_visita.strftime('%d/%m/%Y a las %H:%M hs') }}
+                </h3>
+                <div style="font-size: 0.84rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                    Duración estimada: <strong>{{ item.agenda.duracion_minutos }} min</strong> | Agente: <strong>{{ item.agente.nombre_completo if item.agente else 'Asignado' }}</strong>
+                </div>
+            </div>
+            <div>
+                {% if item.agenda.estado == 'cancelada' %}
+                    <span class="badge badge-finalizado">Cancelada</span>
+                {% elif item.cupo_disponible == 0 %}
+                    <span class="badge badge-pendiente">Cupo Completo</span>
+                {% else %}
+                    <span class="badge badge-activo">{{ item.cupo_disponible }} Lugares Libres</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quota Progress Indicator -->
+        <div style="margin-bottom: 1.1rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.35rem; color: var(--text-secondary);">
+                <span>Cupo ocupado: <strong>{{ item.total_inscriptos }} / {{ item.agenda.cupo_maximo }}</strong> visitantes</span>
+                <span>{% if item.cupo_disponible > 0 %}{{ item.cupo_disponible }} disponible(s){% else %}Agotado{% endif %}</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; border: 1px solid var(--card-border);">
+                <div style="width: {{ (item.total_inscriptos / item.agenda.cupo_maximo) * 100 }}%; height: 100%; background: {% if item.cupo_disponible == 0 %}#f87171{% else %}linear-gradient(90deg, #6366f1, #34d399){% endif %};"></div>
+            </div>
+        </div>
+
+        <!-- Inscriptos List -->
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 0.9rem; border-radius: var(--border-radius-sm); border: 1px solid var(--card-border); margin-bottom: 1rem;">
+            <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem;">
+                Visitantes Confirmados ({{ item.inscriptos|length }})
+            </div>
+            {% if item.inscriptos %}
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                {% for insc in item.inscriptos %}
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 0.35rem;">
+                    <div>
+                        <strong style="color: #ffffff;">{{ insc.nombre_visitante }}</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+                            <i class="bi bi-telephone"></i> {{ insc.telefono_visitante }} {% if insc.email_visitante %}| <i class="bi bi-envelope"></i> {{ insc.email_visitante }}{% endif %}
+                        </div>
+                        {% if insc.observaciones %}
+                        <div style="font-size: 0.76rem; color: #a5b4fc; font-style: italic;">
+                            "{{ insc.observaciones }}"
+                        </div>
+                        {% endif %}
+                    </div>
+                    <span class="badge badge-admin" style="font-size: 0.68rem;">Inscripto</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="font-size: 0.82rem; color: var(--text-muted); font-style: italic;">
+                No hay personas inscriptas en este turno todavía.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            {% if item.agenda.estado != 'cancelada' and item.cupo_disponible > 0 %}
+            <button type="button" onclick="openInscripcionModal({{ item.agenda.id }})" class="btn btn-sm btn-primary">
+                <i class="bi bi-person-plus-fill"></i> Inscribir Visitante
+            </button>
+            {% endif %}
+            {% if item.agenda.estado != 'cancelada' %}
+            <form action="{{ url_for('views.agenda_visita_cancelar', id_agenda=item.agenda.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Cancelar este turno de visita?');">
+                <input type="hidden" name="id_propiedad" value="{{ propiedad.id }}">
+                <button type="submit" class="btn btn-sm btn-secondary" title="Cancelar Turno">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info" style="padding: 1.5rem; justify-content: center; margin-bottom: 2rem;">
+    <i class="bi bi-info-circle" style="font-size: 1.2rem;"></i> No hay turnos de visita agendados actualmente para esta propiedad. Podés crear uno a continuación.
+</div>
+{% endif %}
+
+<!-- Form to Add New Visit Slot -->
+<div class="card" id="form-agendar-turno" style="max-width: 780px;">
+    <h2 style="margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.45rem;">
+        <i class="bi bi-calendar-plus-fill" style="color: #818cf8;"></i> Agendar Nuevo Turno de Visitas
+    </h2>
+    <form action="{{ url_for('views.agenda_visita_crear', id_propiedad=propiedad.id) }}" method="POST">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="fecha_hora_visita"><i class="bi bi-calendar-check"></i> Fecha y Hora de Visita</label>
+                <input type="datetime-local" id="fecha_hora_visita" name="fecha_hora_visita" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="duracion_minutos"><i class="bi bi-stopwatch"></i> Duración del Turno (Minutos)</label>
+                <select id="duracion_minutos" name="duracion_minutos" required>
+                    <option value="30" selected>30 minutos</option>
+                    <option value="45">45 minutos</option>
+                    <option value="60">60 minutos (1 hora)</option>
+                    <option value="90">90 minutos</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="cupo_maximo"><i class="bi bi-people"></i> Cupo Máximo de Personas/Grupos</label>
+                <input type="number" id="cupo_maximo" name="cupo_maximo" min="1" max="20" value="3" required>
+                <small style="color: var(--text-muted);">Límite estricto de asistentes para este horario.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="id_agente"><i class="bi bi-person-badge"></i> Agente Responsable</label>
+                <select id="id_agente" name="id_agente" required>
+                    {% for a in agentes %}
+                        <option value="{{ a.id }}">{{ a.nombre_completo }} ({{ a.matricula }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-calendar2-check-fill"></i> Crear Turno en Agenda
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal to Register Visitor to Slot -->
+<div id="modal-inscribir" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5, 8, 16, 0.8); backdrop-filter: blur(8px); align-items: center; justify-content: center; z-index: 2000;">
+    <div class="card" style="max-width: 520px; width: 92%; margin-bottom: 0; border: 1px solid rgba(99, 102, 241, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+            <h3 style="display: flex; align-items: center; gap: 0.45rem;">
+                <i class="bi bi-person-plus-fill" style="color: #818cf8;"></i> Inscribir Visitante al Turno
+            </h3>
+            <button type="button" onclick="closeInscripcionModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.4rem; cursor: pointer;">&times;</button>
+        </div>
+        
+        <form id="form-inscribir-action" action="" method="POST">
+            <input type="hidden" name="id_propiedad" value="{{ propiedad.id }}">
+            
+            <div class="form-group form-group-full">
+                <label for="id_cliente_sel"><i class="bi bi-person"></i> Cliente Registrado (Opcional)</label>
+                <select id="id_cliente_sel" name="id_cliente" onchange="autofillCliente(this)">
+                    <option value="">-- Nuevo Interesado / No Registrado --</option>
+                    {% for c in clientes %}
+                        <option value="{{ c.id }}" data-nombre="{{ c.nombre_completo }}" data-tel="{{ c.telefono }}" data-email="{{ c.email }}">
+                            {{ c.nombre_completo }} ({{ c.telefono }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group form-group-full" style="margin-top: 0.8rem;">
+                <label for="nombre_visitante">Nombre Completo del Visitante *</label>
+                <input type="text" id="nombre_visitante" name="nombre_visitante" placeholder="Ej. Carlos Martínez" required>
+            </div>
+
+            <div class="form-group form-group-full" style="margin-top: 0.8rem;">
+                <label for="telefono_visitante">Teléfono de Contacto / WhatsApp *</label>
+                <input type="text" id="telefono_visitante" name="telefono_visitante" placeholder="Ej. 3415551234" required>
+            </div>
+
+            <div class="form-group form-group-full" style="margin-top: 0.8rem;">
+                <label for="email_visitante">Correo Electrónico (Opcional)</label>
+                <input type="email" id="email_visitante" name="email_visitante" placeholder="carlos@gmail.com">
+            </div>
+
+            <div class="form-group form-group-full" style="margin-top: 0.8rem;">
+                <label for="observaciones">Observaciones o Interés Particular</label>
+                <input type="text" id="observaciones" name="observaciones" placeholder="Ej. Interesado en ofertar con cochera / Lleva seña">
+            </div>
+
+            <div style="display: flex; gap: 0.8rem; margin-top: 1.6rem; justify-content: flex-end;">
+                <button type="button" onclick="closeInscripcionModal()" class="btn btn-secondary">Cancelar</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> Confirmar Inscripción
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openInscripcionModal(idAgenda) {
+    var form = document.getElementById('form-inscribir-action');
+    form.action = "/visitas/" + idAgenda + "/inscribir";
+    document.getElementById('modal-inscribir').style.display = 'flex';
+}
+
+function closeInscripcionModal() {
+    document.getElementById('modal-inscribir').style.display = 'none';
+}
+
+function autofillCliente(selectElem) {
+    var opt = selectElem.options[selectElem.selectedIndex];
+    if (opt.value) {
+        document.getElementById('nombre_visitante').value = opt.getAttribute('data-nombre') || '';
+        document.getElementById('telefono_visitante').value = opt.getAttribute('data-tel') || '';
+        document.getElementById('email_visitante').value = opt.getAttribute('data-email') || '';
+    }
+}
+</script>
+{% endblock %}

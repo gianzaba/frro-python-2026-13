@@ -2,21 +2,36 @@
 
 {% block title %}Propiedades{% endblock %}
 
+{% block head %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+{% endblock %}
+
 {% block content %}
-<header>
+<div class="page-header">
     <div>
-        <h1>Gestión de Propiedades</h1>
-        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Catálogo de inmuebles en alquiler o venta</p>
+        <h1><i class="bi bi-houses-fill" style="color: #818cf8;"></i> Gestión de Propiedades</h1>
+        <p class="subtitle">Catálogo de inmuebles en alquiler o venta comercializados por la firma</p>
     </div>
-    <a href="{{ url_for('views.propiedad_crear') }}" class="btn btn-primary">➕ Registrar Propiedad</a>
-</header>
+    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+        <a href="{{ url_for('views.propiedades_inactivas') }}" class="btn btn-secondary" style="border-color: rgba(251, 191, 36, 0.4); color: #fbbf24;">
+            <i class="bi bi-graph-down-arrow"></i> Análisis de Inactividad
+        </a>
+        <a href="{{ url_for('views.propiedad_crear') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle-fill"></i> Registrar Propiedad
+        </a>
+    </div>
+</div>
 
 <div class="card">
-    <h2>Listado de Propiedades</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <h2><i class="bi bi-list-task" style="color: #818cf8;"></i> Inventario de Propiedades</h2>
+        <span class="badge badge-admin">{{ propiedades|length }} Inmuebles</span>
+    </div>
     
     <div class="table-container">
         {% if propiedades %}
-        <table>
+        <table id="tabla-propiedades" class="display compact" style="width: 100%;">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -32,9 +47,13 @@
             <tbody>
                 {% for item in propiedades %}
                 <tr>
-                    <td>{{ item.propiedad.id }}</td>
-                    <td style="font-weight: 500;">{{ item.propiedad.direccion }}</td>
-                    <td>{{ item.propiedad.tipo }}</td>
+                    <td><strong>#{{ item.propiedad.id }}</strong></td>
+                    <td style="font-weight: 600; color: #ffffff;">{{ item.propiedad.direccion }}</td>
+                    <td>
+                        <span class="badge badge-admin" style="font-size: 0.7rem;">
+                            {{ item.propiedad.tipo }}
+                        </span>
+                    </td>
                     <td>{{ item.propiedad.zona }}</td>
                     <td>
                         <span class="badge badge-{{ item.propiedad.estado }}">
@@ -45,21 +64,30 @@
                         {% if item.propietario %}
                             {{ item.propietario.nombre_completo }}
                         {% else %}
-                            <span style="color: var(--text-secondary);">Sin propietario</span>
+                            <span style="color: var(--text-muted); font-style: italic;">Sin propietario</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if item.agente_asignado %}
-                            <span style="color: #818cf8; font-weight: 500;">👤 {{ item.agente_asignado.nombre_completo }}</span>
+                            <span style="color: #818cf8; font-weight: 500;">
+                                <i class="bi bi-person-fill"></i> {{ item.agente_asignado.nombre_completo }}
+                            </span>
                         {% else %}
-                            <span style="color: var(--text-secondary); font-style: italic;">Sin asignar</span>
+                            <span style="color: var(--text-muted); font-style: italic;">Sin asignar</span>
                         {% endif %}
                     </td>
                     <td>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <a href="{{ url_for('views.propiedad_detalle', id_propiedad=item.propiedad.id) }}" class="btn btn-secondary btn-sm">🔍 Detalles</a>
+                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            <a href="{{ url_for('views.propiedad_detalle', id_propiedad=item.propiedad.id) }}" class="btn btn-secondary btn-sm" title="Ver Ficha Completa">
+                                <i class="bi bi-eye"></i> Detalle
+                            </a>
+                            <a href="{{ url_for('views.propiedad_visitas', id_propiedad=item.propiedad.id) }}" class="btn btn-secondary btn-sm" style="border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc;" title="Agenda de Visitas con Cupos">
+                                <i class="bi bi-calendar-event"></i> Visitas
+                            </a>
                             {% if item.propiedad.estado == 'disponible' %}
-                                <a href="{{ url_for('views.propiedad_asignar', id_propiedad=item.propiedad.id) }}" class="btn btn-primary btn-sm">👤 Asignar</a>
+                                <a href="{{ url_for('views.propiedad_asignar', id_propiedad=item.propiedad.id) }}" class="btn btn-primary btn-sm" title="Asignar Agente Comercial">
+                                    <i class="bi bi-person-plus"></i> Asignar
+                                </a>
                             {% endif %}
                         </div>
                     </td>
@@ -68,8 +96,28 @@
             </tbody>
         </table>
         {% else %}
-        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No hay propiedades registradas actualmente.</p>
+        <div class="alert alert-info" style="justify-content: center; padding: 2rem;">
+            <i class="bi bi-info-circle" style="font-size: 1.2rem;"></i> No hay propiedades registradas en el catálogo.
+        </div>
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#tabla-propiedades').DataTable({
+        "language": {
+            "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+        },
+        "pageLength": 10,
+        "ordering": true,
+        "autoWidth": false,
+        "responsive": true
+    });
+});
+</script>
 {% endblock %}

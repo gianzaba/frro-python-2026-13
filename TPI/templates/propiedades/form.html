@@ -3,26 +3,30 @@
 {% block title %}Nueva Propiedad{% endblock %}
 
 {% block content %}
-<header>
+<div class="page-header">
     <div>
-        <h1>Registrar Propiedad</h1>
-        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Agrega una nueva propiedad a la base de datos de la inmobiliaria</p>
+        <h1><i class="bi bi-house-add-fill" style="color: #818cf8;"></i> Registrar Propiedad</h1>
+        <p class="subtitle">Agrega un nuevo inmueble para administración o comercialización</p>
     </div>
-    <a href="{{ url_for('views.propiedades_list') }}" class="btn btn-secondary">🠰 Volver al Listado</a>
-</header>
+    <a href="{{ url_for('views.propiedades_list') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver al Listado
+    </a>
+</div>
 
 <div class="card" style="max-width: 800px; margin: 0 auto;">
-    <h2>Datos de la Propiedad</h2>
+    <h2 style="margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.45rem;">
+        <i class="bi bi-card-checklist" style="color: #818cf8;"></i> Datos del Inmueble
+    </h2>
     
     <form action="{{ url_for('views.propiedad_crear') }}" method="POST">
         <div class="form-grid">
             <div class="form-group form-group-full">
-                <label for="direccion">Dirección Completa</label>
+                <label for="direccion"><i class="bi bi-geo-alt"></i> Dirección Completa</label>
                 <input type="text" id="direccion" name="direccion" placeholder="Ej: Bv. Oroño 1234, Rosario" required>
             </div>
             
             <div class="form-group">
-                <label for="tipo">Tipo de Operación</label>
+                <label for="tipo"><i class="bi bi-tag"></i> Tipo de Operación</label>
                 <select id="tipo" name="tipo" required>
                     <option value="" disabled selected>Selecciona una opción</option>
                     <option value="Alquiler">Alquiler</option>
@@ -31,30 +35,32 @@
             </div>
             
             <div class="form-group">
-                <label for="zona">Zona / Barrio</label>
-                <input type="text" id="zona" name="zona" placeholder="Ej: Centro / Pichincha" required>
+                <label for="zona"><i class="bi bi-map"></i> Zona / Barrio</label>
+                <input type="text" id="zona" name="zona" placeholder="Ej: Centro / Pichincha / Echesortu" required>
             </div>
             
             <div class="form-group form-group-full">
-                <label for="id_propietario">Propietario Asociado</label>
+                <label for="id_propietario"><i class="bi bi-person-badge"></i> Propietario Asociado</label>
                 {% if propietarios %}
                 <select id="id_propietario" name="id_propietario" required>
                     <option value="" disabled selected>Selecciona el propietario...</option>
                     {% for prop in propietarios %}
-                        <option value="{{ prop.id }}">{{ prop.nombre_completo }} (DNI: {{ prop.nro_doc }})</option>
+                        <option value="{{ prop.id }}">{{ prop.nombre_completo }} ({{ prop.tipo_doc }}: {{ prop.nro_doc }})</option>
                     {% endfor %}
                 </select>
                 {% else %}
-                <div style="color: var(--danger); font-size: 0.9rem; padding: 0.5rem 0;">
-                    ⚠️ No hay propietarios registrados en el sistema. Debes <a href="{{ url_for('views.propietario_crear') }}" style="color: var(--primary); font-weight: 600;">registrar un propietario</a> primero.
+                <div class="alert alert-warning" style="margin-top: 0.5rem;">
+                    <i class="bi bi-exclamation-triangle"></i> No hay propietarios registrados en el sistema. Debes <a href="{{ url_for('views.propietario_crear') }}" style="color: #ffffff; font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">registrar un propietario</a> primero.
                 </div>
                 {% endif %}
             </div>
         </div>
         
-        <div style="display: flex; gap: 1rem; margin-top: 2rem; justify-content: flex-end;">
+        <div style="display: flex; gap: 0.8rem; margin-top: 2rem; justify-content: flex-end;">
             <a href="{{ url_for('views.propiedades_list') }}" class="btn btn-secondary">Cancelar</a>
-            <button type="submit" class="btn btn-primary" {% if not propietarios %}disabled{% endif %}>Registrar Propiedad</button>
+            <button type="submit" class="btn btn-primary" {% if not propietarios %}disabled{% endif %}>
+                <i class="bi bi-check-circle-fill"></i> Guardar Propiedad
+            </button>
         </div>
     </form>
 </div>

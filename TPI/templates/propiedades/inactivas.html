@@ -1,0 +1,153 @@
+{% extends "layout.html" %}
+
+{% block title %}Análisis de Inactividad y Precios{% endblock %}
+
+{% block head %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-graph-down-arrow" style="color: #fbbf24;"></i> Análisis de Inactividad y Precios</h1>
+        <p class="subtitle">Diagnóstico estratégico de propiedades con mayor tiempo sin comercializarse para negociación con propietarios</p>
+    </div>
+    <div style="display: flex; gap: 0.6rem;">
+        <a href="{{ url_for('views.propiedades_list') }}" class="btn btn-secondary">
+            <i class="bi bi-houses-fill"></i> Volver a Propiedades
+        </a>
+    </div>
+</div>
+
+<!-- Key Highlights -->
+<div class="stats-grid">
+    <div class="stat-card stat-warning">
+        <div class="stat-header">
+            <span class="stat-label">Inmuebles en Oferta</span>
+            <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+        </div>
+        <div class="stat-value" style="color: #fbbf24;">{{ analisis|length }}</div>
+    </div>
+    <div class="stat-card stat-danger">
+        <div class="stat-header">
+            <span class="stat-label">Inactividad Crítica (>60 días)</span>
+            <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+        </div>
+        <div class="stat-value" style="color: #f87171;">
+            {{ analisis|selectattr("dias_vacante", "ge", 60)|list|length }}
+        </div>
+    </div>
+    <div class="stat-card stat-primary">
+        <div class="stat-header">
+            <span class="stat-label">Estrategia Sugerida</span>
+            <div class="stat-icon"><i class="bi bi-lightbulb-fill"></i></div>
+        </div>
+        <div class="stat-value" style="font-size: 1.2rem; color: #a5b4fc; margin-top: 0.3rem;">
+            Ajuste & Visitas
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <h2><i class="bi bi-table" style="color: #818cf8;"></i> Diagnóstico por Inmueble y Recomendaciones</h2>
+        <span class="badge badge-admin">{{ analisis|length }} Propiedades Evaluadas</span>
+    </div>
+    
+    <div class="table-container">
+        {% if analisis %}
+        <table id="tabla-inactivas" class="display compact" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Inmueble</th>
+                    <th>Tipo / Zona</th>
+                    <th>Propietario</th>
+                    <th>Tiempo Vacante</th>
+                    <th>Nivel de Riesgo</th>
+                    <th>Ajuste Sugerido</th>
+                    <th>Plan de Acción Recomendado</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in analisis %}
+                <tr>
+                    <td>
+                        <strong style="color: #ffffff;">{{ item.propiedad.direccion }}</strong>
+                        <small style="color: var(--text-muted); display: block;">ID: #{{ item.propiedad.id }}</small>
+                    </td>
+                    <td>
+                        <span class="badge badge-admin">{{ item.propiedad.tipo }}</span>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem;">{{ item.propiedad.zona }}</div>
+                    </td>
+                    <td>
+                        {% if item.propietario %}
+                            <div style="font-weight: 500;">{{ item.propietario.nombre_completo }}</div>
+                            <small style="color: var(--text-muted);"><i class="bi bi-telephone"></i> {{ item.propietario.telefono }}</small>
+                        {% else %}
+                            <span style="color: var(--text-muted);">Sin propietario</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="font-weight: 800; font-size: 1rem; color: {% if item.dias_vacante > 60 %}#f87171{% elif item.dias_vacante > 30 %}#fbbf24{% else %}#34d399{% endif %};">
+                            {{ item.dias_vacante }} días
+                        </div>
+                        <small style="color: var(--text-muted);">Desde: {{ item.propiedad.fecha_disponibilidad.strftime('%d/%m/%Y') }}</small>
+                    </td>
+                    <td>
+                        <span class="badge {{ item.badge_class }}">
+                            {{ item.nivel_riesgo }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if item.ajuste_sugerido_pct > 0 %}
+                            <strong style="color: #f87171;">-{{ item.ajuste_sugerido_pct }}%</strong>
+                        {% else %}
+                            <span style="color: #34d399; font-weight: 600;">0% (Mantener)</span>
+                        {% endif %}
+                    </td>
+                    <td style="max-width: 320px;">
+                        <div style="font-size: 0.84rem; line-height: 1.4;">{{ item.accion_recomendada }}</div>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.4rem;">
+                            <a href="{{ url_for('views.propiedad_visitas', id_propiedad=item.propiedad.id) }}" class="btn btn-sm btn-primary" title="Agendar Visitas con Cupos">
+                                <i class="bi bi-calendar-plus"></i> Visitas
+                            </a>
+                            <a href="{{ url_for('views.propiedad_detalle', id_propiedad=item.propiedad.id) }}" class="btn btn-sm btn-secondary" title="Ver Ficha">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="alert alert-info" style="justify-content: center; padding: 2rem;">
+            <i class="bi bi-info-circle" style="font-size: 1.2rem;"></i> No se registran propiedades disponibles inactivas en este momento.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#tabla-inactivas').DataTable({
+        "language": {
+            "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+        },
+        "pageLength": 10,
+        "ordering": true,
+        "autoWidth": false,
+        "responsive": true
+    });
+});
+</script>
+{% endblock %}

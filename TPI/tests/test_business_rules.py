@@ -1,6 +1,6 @@
 import os
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Force database to use an in-memory SQLite for isolated tests
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
@@ -163,7 +163,6 @@ def test_business_rule_2_agent_multiple_property_assignments():
 
     assert active1 is not None and active1.id_agente == agent.id
     assert active2 is not None and active2.id_agente == agent.id
-
 
 
 def test_business_rule_3_agent_performing_contract_must_be_assigned():

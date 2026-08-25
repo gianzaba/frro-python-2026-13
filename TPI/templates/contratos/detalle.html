@@ -3,211 +3,218 @@
 {% block title %}Detalle de Contrato #{{ contrato.nro_contrato }}{% endblock %}
 
 {% block content %}
-<header>
+<div class="page-header">
     <div>
-        <h1>Contrato de {{ contrato.tipo_contrato }} #{{ contrato.nro_contrato }}</h1>
-        <p style="color: var(--text-secondary); margin-top: 0.2rem;">
-            Detalles del acuerdo, honorarios e inmutabilidad contractual.
-        </p>
+        <h1><i class="bi bi-file-earmark-text-fill" style="color: #818cf8;"></i> Contrato de {{ contrato.tipo_contrato }} #{{ contrato.nro_contrato }}</h1>
+        <p class="subtitle">Desglose contractual, cláusulas jurídicas e inmutabilidad legal</p>
     </div>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
         {% if contrato.estado == 'solicitado' %}
         <form action="{{ url_for('views.contrato_firmar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Confirmás la firma del contrato? Una vez firmado, el contrato y sus cláusulas quedarán bloqueados e inmutables.');">
-            <button type="submit" class="btn btn-success">✍️ Firmar y Activar Contrato</button>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-pen-fill"></i> Firmar y Activar Contrato
+            </button>
         </form>
         {% endif %}
 
         <a href="{{ url_for('views.contrato_imprimir', nro_contrato=contrato.nro_contrato) }}" class="btn btn-primary" target="_blank">
-            🖨️ Vista Previa e Impresión
+            <i class="bi bi-printer-fill"></i> Vista de Impresión
         </a>
         <a href="{{ url_for('views.contratos_list') }}" class="btn btn-secondary">
-            ⬅️ Volver a Contratos
+            <i class="bi bi-arrow-left"></i> Volver
         </a>
     </div>
-</header>
+</div>
 
-<!-- Cartel de Contrato Firmado (Si estado == 'activo') -->
+<!-- Banner de Contrato Firmado -->
 {% if contrato.estado == 'activo' %}
-<div style="background: rgba(16, 185, 129, 0.15); border: 2px solid #10b981; color: #10b981; padding: 1.2rem; border-radius: 8px; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
-    <div>
-        <h3 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
-            ✍️ CONTRATO FIRMADO Y CELEBRADO EL {{ contrato.fecha_contrato.strftime('%d/%m/%Y') if contrato.fecha_contrato else 'RECINETEMENTE' }}
-        </h3>
-        <p style="margin: 0.3rem 0 0 0; font-size: 0.9rem; color: var(--text-primary);">
-            Este contrato ha sido celebrado legalmente y se encuentra en estado <strong>ACTIVO</strong>. Todas las cláusulas y porcentajes financieros han quedado bloqueados e inmutables.
-        </p>
+<div class="card" style="border: 1px solid var(--success-border); background: var(--success-bg); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.8rem;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: center; color: #34d399; font-size: 1.4rem;">
+            <i class="bi bi-patch-check-fill"></i>
+        </div>
+        <div>
+            <h3 style="margin: 0; font-size: 1.05rem; color: #34d399;">
+                CONTRATO FIRMADO Y CELEBRADO EL {{ contrato.fecha_contrato.strftime('%d/%m/%Y') if contrato.fecha_contrato else 'RECIENTEMENTE' }}
+            </h3>
+            <p style="margin: 0.2rem 0 0 0; font-size: 0.84rem; color: var(--text-primary);">
+                Este acuerdo tiene plena vigencia legal. Todas las cláusulas y porcentajes contables han quedado sellados e inmutables.
+            </p>
+        </div>
     </div>
-    <span class="badge badge-activo" style="font-size: 1rem; padding: 0.5rem 1rem;">Firmado</span>
+    <span class="badge badge-activo" style="font-size: 0.85rem; padding: 0.4rem 0.9rem;">
+        <i class="bi bi-lock-fill"></i> Estado: Firmado
+    </span>
 </div>
 {% endif %}
 
 <!-- Resumen e Información del Contrato -->
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
     <div class="card">
-        <h2>📑 Datos Principales del Acuerdo</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; margin-top: 1rem;">
-            <div>
-                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Tipo de Operación</span>
-                <strong style="font-size: 1.1rem;">{{ contrato.tipo_contrato }}</strong>
+        <h2 style="margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.45rem;">
+            <i class="bi bi-file-earmark-check-fill" style="color: #818cf8;"></i> Datos Principales del Acuerdo
+        </h2>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span class="detail-label">Tipo de Operación</span>
+                <span class="detail-value"><span class="badge badge-admin">{{ contrato.tipo_contrato }}</span></span>
             </div>
-            <div>
-                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Estado Actual</span>
-                <span class="badge badge-{{ contrato.estado }}">{{ contrato.estado }}</span>
+            <div class="detail-item">
+                <span class="detail-label">Estado</span>
+                <span class="detail-value"><span class="badge badge-{{ contrato.estado }}">{{ contrato.estado }}</span></span>
             </div>
-            <div>
-                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Fecha Solicitud</span>
-                <strong>{{ contrato.fecha_solicitud.strftime('%d/%m/%Y') if contrato.fecha_solicitud else '-' }}</strong>
+            <div class="detail-item">
+                <span class="detail-label">Fecha de Solicitud</span>
+                <span class="detail-value">{{ contrato.fecha_solicitud.strftime('%d/%m/%Y') if contrato.fecha_solicitud else '-' }}</span>
             </div>
-            <div>
-                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Fecha Firma/Celebración</span>
-                <strong>{{ contrato.fecha_contrato.strftime('%d/%m/%Y') if contrato.fecha_contrato else 'Pendiente de Firma' }}</strong>
+            <div class="detail-item">
+                <span class="detail-label">Fecha Firma</span>
+                <span class="detail-value">{{ contrato.fecha_contrato.strftime('%d/%m/%Y') if contrato.fecha_contrato else 'Pendiente' }}</span>
             </div>
-            <div>
-                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Monto de Operación</span>
-                <strong style="font-size: 1.2rem; color: var(--primary-color);">${{ "%.2f"|format(contrato.monto) }}</strong>
-            </div>
-            <div>
-                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Inmueble / Propiedad</span>
-                <strong>{{ propiedad.direccion if propiedad else 'N/A' }}</strong>
-                <div style="font-size: 0.8rem; color: var(--text-secondary);">Zona: {{ propiedad.zona if propiedad else '-' }}</div>
-            </div>
-            <div>
-                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">
-                    {{ 'Inquilino / Comprador' if contrato.tipo_contrato == 'Alquiler' else 'Comprador' }}
+            <div class="detail-item">
+                <span class="detail-label">Monto de Operación</span>
+                <span class="detail-value" style="color: #34d399; font-size: 1.2rem; font-weight: 800;">
+                    ${{ "%.2f"|format(contrato.monto) }}
                 </span>
-                <strong>{{ cliente.nombre_completo if cliente else 'N/A' }}</strong>
-                <div style="font-size: 0.8rem; color: var(--text-secondary);">Doc: {{ cliente.tipo_doc }} {{ cliente.nro_doc }}</div>
             </div>
-            <div>
-                <span style="font-size: 0.85rem; color: var(--text-secondary); display: block;">Propietario / Vendedor</span>
-                <strong>{{ propietario.nombre_completo if propietario else 'N/A' }}</strong>
-                <div style="font-size: 0.8rem; color: var(--text-secondary);">Tel: {{ propietario.telefono if propietario else '-' }}</div>
+            <div class="detail-item">
+                <span class="detail-label">Inmueble / Propiedad</span>
+                <span class="detail-value">{{ propiedad.direccion if propiedad else 'N/A' }}</span>
+                <small style="color: var(--text-muted);">Zona: {{ propiedad.zona if propiedad else '-' }}</small>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">{{ 'Inquilino / Locatario' if contrato.tipo_contrato == 'Alquiler' else 'Comprador' }}</span>
+                <span class="detail-value">{{ cliente.nombre_completo if cliente else 'N/A' }}</span>
+                <small style="color: var(--text-muted);">Doc: {{ cliente.tipo_doc }} {{ cliente.nro_doc }}</small>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Propietario / Locador</span>
+                <span class="detail-value">{{ propietario.nombre_completo if propietario else 'N/A' }}</span>
+                <small style="color: var(--text-muted);">Tel: {{ propietario.telefono if propietario else '-' }}</small>
             </div>
         </div>
     </div>
 
-    <!-- Módulo de Honorarios e Inmobiliaria (Sistema Interno) -->
-    <div class="card" style="background: rgba(30, 41, 59, 0.5); border: 1px solid var(--border-color);">
-        <h2>💼 Desglose Interno de Honorarios</h2>
-        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-            Desglose interno de distribución entre la Inmobiliaria y el Agente.
+    <!-- Módulo de Honorarios e Inmobiliaria -->
+    <div class="card">
+        <h2 style="margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.45rem;">
+            <i class="bi bi-wallet-fill" style="color: #c084fc;"></i> Desglose Interno de Honorarios
+        </h2>
+        <p class="subtitle" style="margin-bottom: 1.1rem;">
+            Distribución contable interna entre la Inmobiliaria y el Agente.
         </p>
 
-        <div style="padding: 1rem; background: var(--bg-card); border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--primary-color);">
-            <div style="font-size: 0.85rem; color: var(--text-secondary);">Honorarios Totales de Operación</div>
-            <div style="font-size: 1.3rem; font-weight: 700; color: var(--primary-color);">
-                ${{ "%.2f"|format(monto_honorarios_totales) }} <span style="font-size: 0.85rem; color: var(--text-secondary);">({{ contrato.comision_porcentaje }}%)</span>
+        <div style="padding: 0.9rem 1.1rem; background: rgba(99, 102, 241, 0.1); border-radius: var(--border-radius-sm); margin-bottom: 1rem; border-left: 4px solid var(--primary);">
+            <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Honorarios Totales de Operación</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #a5b4fc; margin-top: 0.15rem;">
+                ${{ "%.2f"|format(monto_honorarios_totales) }} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">({{ contrato.comision_porcentaje }}%)</span>
             </div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">(Monto visible en el contrato impreso al cliente)</div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.2rem;">
-            <div style="padding: 0.8rem; background: var(--bg-card); border-radius: 6px; border-top: 3px solid #10b981;">
-                <div style="font-size: 0.75rem; color: var(--text-secondary);">Agente Interviniente</div>
-                <div style="font-size: 0.85rem; font-weight: bold; color: var(--text-primary);">👤 {{ agente.nombre_completo if agente else 'N/A' }}</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: #10b981; margin-top: 0.3rem;">
+            <div style="padding: 0.8rem; background: rgba(255,255,255,0.03); border-radius: var(--border-radius-sm); border: 1px solid var(--card-border); border-top: 3px solid #10b981;">
+                <div style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Agente Interviniente</div>
+                <div style="font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-top: 0.2rem;">👤 {{ agente.nombre_completo if agente else 'N/A' }}</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #34d399; margin-top: 0.2rem;">
                     ${{ "%.2f"|format(monto_comision_agente) }}
                 </div>
-                <span style="font-size: 0.75rem; color: var(--text-secondary);">Comisión: {{ contrato.comision_agente_porcentaje }}%</span>
+                <small style="color: var(--text-muted);">Comisión: {{ contrato.comision_agente_porcentaje }}%</small>
             </div>
 
-            <div style="padding: 0.8rem; background: var(--bg-card); border-radius: 6px; border-top: 3px solid #6366f1;">
-                <div style="font-size: 0.75rem; color: var(--text-secondary);">Neto Inmobiliaria</div>
-                <div style="font-size: 0.85rem; font-weight: bold; color: var(--text-primary);">🏢 Agencia</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: #6366f1; margin-top: 0.3rem;">
+            <div style="padding: 0.8rem; background: rgba(255,255,255,0.03); border-radius: var(--border-radius-sm); border: 1px solid var(--card-border); border-top: 3px solid #6366f1;">
+                <div style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Neto Inmobiliaria</div>
+                <div style="font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-top: 0.2rem;">🏢 InmoGestión</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #818cf8; margin-top: 0.2rem;">
                     ${{ "%.2f"|format(monto_comision_inmobiliaria) }}
                 </div>
-                <span style="font-size: 0.75rem; color: var(--text-secondary);">Retención neta</span>
+                <small style="color: var(--text-muted);">Retención neta</small>
             </div>
         </div>
 
-        <!-- Formulario para Modificar % de Honorarios / Comisión (Solo si NO está firmado) -->
         {% if contrato.estado == 'solicitado' %}
-        <form action="{{ url_for('views.contrato_comision_actualizar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="border-top: 1px solid var(--border-color); padding-top: 0.8rem;">
-            <div class="form-group" style="margin-bottom: 0.6rem;">
-                <label for="comision_porcentaje" style="font-size: 0.8rem;">% Honorarios Totales (Cliente):</label>
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.2rem;">
-                    <input type="number" step="0.1" min="0" max="100" id="comision_porcentaje" name="comision_porcentaje" value="{{ contrato.comision_porcentaje }}" required class="form-control" style="width: 90px;">
-                    <span style="align-self: center; font-weight: bold; font-size: 0.85rem;">%</span>
+        <form action="{{ url_for('views.contrato_comision_actualizar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="border-top: 1px solid var(--card-border); padding-top: 0.9rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.8rem;">
+                <div class="form-group">
+                    <label for="comision_porcentaje">% Honorarios Totales</label>
+                    <input type="number" step="0.1" min="0" max="100" id="comision_porcentaje" name="comision_porcentaje" value="{{ contrato.comision_porcentaje }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="comision_agente_porcentaje">% Comisión Agente</label>
+                    <input type="number" step="0.1" min="0" max="100" id="comision_agente_porcentaje" name="comision_agente_porcentaje" value="{{ contrato.comision_agente_porcentaje }}" required>
                 </div>
             </div>
-
-            <div class="form-group" style="margin-bottom: 0.8rem;">
-                <label for="comision_agente_porcentaje" style="font-size: 0.8rem;">% Comisión del Agente:</label>
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.2rem;">
-                    <input type="number" step="0.1" min="0" max="100" id="comision_agente_porcentaje" name="comision_agente_porcentaje" value="{{ contrato.comision_agente_porcentaje }}" required class="form-control" style="width: 90px;">
-                    <span style="align-self: center; font-weight: bold; font-size: 0.85rem;">%</span>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">💾 Actualizar Porcentajes</button>
+            <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">
+                <i class="bi bi-save"></i> Actualizar Porcentajes
+            </button>
         </form>
         {% else %}
-        <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; font-style: italic;">
-            🔒 Porcentajes bloqueados por firma.
+        <div class="alert alert-info" style="font-size: 0.8rem; margin-top: 0.5rem;">
+            <i class="bi bi-lock-fill"></i> Porcentajes bloqueados por firma.
         </div>
         {% endif %}
     </div>
-
 </div>
 
 <!-- Sección de Cláusulas del Contrato -->
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2>📜 Cláusulas del Contrato</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+        <h2><i class="bi bi-card-text" style="color: #818cf8;"></i> Cláusulas del Contrato</h2>
         {% if contrato.estado == 'solicitado' %}
-        <button onclick="document.getElementById('form-nueva-clausula').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary btn-sm">
-            ➕ Añadir Cláusula
+        <button type="button" onclick="document.getElementById('form-nueva-clausula').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Añadir Cláusula
         </button>
         {% else %}
-        <span style="color: #10b981; font-weight: 500; font-size: 0.9rem;">🔒 Cláusulas Inmutables</span>
+        <span class="badge badge-activo"><i class="bi bi-lock-fill"></i> Cláusulas Inmutables</span>
         {% endif %}
     </div>
     
-    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+    <p class="subtitle" style="margin-bottom: 1.4rem;">
         {% if contrato.estado == 'solicitado' %}
-        Las cláusulas predeterminadas se han cargado automáticamente. Podés modificar cualquier cláusula, eliminarla o agregar nuevas antes de la firma.
+        Las cláusulas predeterminadas se han cargado automáticamente. Podés modificar, reordenar o eliminar cláusulas antes de firmar el acuerdo definitivo.
         {% else %}
         Las cláusulas fueron firmadas y han quedado registradas en el sistema de manera inmutable.
         {% endif %}
     </p>
 
-    <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
         {% for cl in clausulas %}
-        <div style="background: rgba(15, 23, 42, 0.6); padding: 1.2rem; border-radius: 8px; border: 1px solid var(--border-color);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <h3 style="font-size: 1.05rem; margin: 0; color: var(--primary-color);">
-                    Cláusula {{ cl.orden }}: {{ cl.titulo }}
+        <div style="background: rgba(15, 23, 42, 0.7); padding: 1.1rem 1.3rem; border-radius: var(--border-radius-sm); border: 1px solid var(--card-border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                <h3 style="font-size: 0.98rem; color: #a5b4fc; display: flex; align-items: center; gap: 0.4rem;">
+                    <i class="bi bi-bookmark-check-fill"></i> Cláusula {{ cl.orden }}: {{ cl.titulo }}
                 </h3>
                 {% if contrato.estado == 'solicitado' %}
                 <div style="display: flex; gap: 0.4rem;">
-                    <button onclick="toggleEditForm({{ cl.id }})" class="btn btn-secondary btn-sm">✏️ Editar</button>
+                    <button type="button" onclick="toggleEditForm({{ cl.id }})" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-pencil-square"></i> Editar
+                    </button>
                     <form action="{{ url_for('views.clausula_eliminar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Seguro que querés quitar esta cláusula del contrato?');">
-                        <button type="submit" class="btn btn-danger btn-sm">🗑️ Quitar</button>
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </form>
                 </div>
                 {% endif %}
             </div>
 
             <!-- Vista de contenido -->
-            <p id="clausula-view-{{ cl.id }}" style="margin: 0; line-height: 1.5; color: var(--text-primary); white-space: pre-line;">
+            <p id="clausula-view-{{ cl.id }}" style="margin: 0; line-height: 1.6; color: var(--text-primary); font-size: 0.88rem; white-space: pre-line;">
                 {{ cl.contenido }}
             </p>
 
             {% if contrato.estado == 'solicitado' %}
             <!-- Formulario de edición (oculto por defecto) -->
-            <form id="clausula-edit-{{ cl.id }}" action="{{ url_for('views.clausula_editar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: none; margin-top: 1rem; background: var(--bg-card); padding: 1rem; border-radius: 6px;">
+            <form id="clausula-edit-{{ cl.id }}" action="{{ url_for('views.clausula_editar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: none; margin-top: 1rem; background: rgba(30, 41, 59, 0.7); padding: 1.1rem; border-radius: var(--border-radius-sm); border: 1px solid rgba(99, 102, 241, 0.3);">
                 <div class="form-group" style="margin-bottom: 0.8rem;">
-                    <label style="font-size: 0.85rem;">Título de Cláusula</label>
-                    <input type="text" name="titulo" value="{{ cl.titulo }}" required class="form-control">
+                    <label>Título de la Cláusula</label>
+                    <input type="text" name="titulo" value="{{ cl.titulo }}" required>
                 </div>
                 <div class="form-group" style="margin-bottom: 0.8rem;">
-                    <label style="font-size: 0.85rem;">Contenido de la Cláusula</label>
-                    <textarea name="contenido" rows="3" required class="form-control" style="width: 100%; min-height: 80px;">{{ cl.contenido }}</textarea>
+                    <label>Contenido de la Cláusula</label>
+                    <textarea name="contenido" rows="3" required style="width: 100%; min-height: 80px;">{{ cl.contenido }}</textarea>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button type="submit" class="btn btn-success btn-sm">💾 Guardar Cambios</button>
+                    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check2"></i> Guardar Cambios</button>
                     <button type="button" onclick="toggleEditForm({{ cl.id }})" class="btn btn-secondary btn-sm">Cancelar</button>
                 </div>
             </form>
@@ -216,21 +223,124 @@
         {% endfor %}
     </div>
 
-    <!-- Formulario para Añadir Nueva Cláusula (Solo si NO está firmado) -->
+    <!-- Formulario para Añadir Nueva Cláusula -->
     {% if contrato.estado == 'solicitado' %}
-    <div id="form-nueva-clausula" style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-        <h3>➕ Añadir Nueva Cláusula al Contrato</h3>
-        <form action="{{ url_for('views.clausula_agregar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="margin-top: 1rem;">
+    <div id="form-nueva-clausula" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--card-border);">
+        <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.45rem;">
+            <i class="bi bi-plus-circle-fill" style="color: #818cf8;"></i> Añadir Nueva Cláusula al Contrato
+        </h3>
+        <form action="{{ url_for('views.clausula_agregar', nro_contrato=contrato.nro_contrato) }}" method="POST">
             <div class="form-group" style="margin-bottom: 1rem;">
-                <label for="titulo">Título de la Cláusula (Ej: OCTAVA (GARANTÍAS)):</label>
-                <input type="text" id="titulo" name="titulo" placeholder="Ej: OCTAVA (DEPÓSITO EN GARANTÍA)" required class="form-control">
+                <label for="titulo">Título de la Cláusula</label>
+                <input type="text" id="titulo" name="titulo" placeholder="Ej: OCTAVA (DEPÓSITO EN GARANTÍA)" required>
             </div>
             <div class="form-group" style="margin-bottom: 1rem;">
-                <label for="contenido">Contenido de la Cláusula:</label>
-                <textarea id="contenido" name="contenido" rows="3" placeholder="Escribí aquí el texto completo de la cláusula..." required class="form-control" style="width: 100%; min-height: 100px;"></textarea>
+                <label for="contenido">Contenido de la Cláusula</label>
+                <textarea id="contenido" name="contenido" rows="3" placeholder="Escribí aquí el texto legal completo de la cláusula..." required style="width: 100%; min-height: 90px;"></textarea>
             </div>
-            <button type="submit" class="btn btn-primary">➕ Agregar Cláusula</button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Agregar Cláusula
+            </button>
         </form>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Sección de Reclamos e Incidencias del Contrato -->
+<div class="card" style="margin-top: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem;">
+        <div>
+            <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-tools" style="color: #f59e0b;"></i> Reclamos & Incidencias Estructurales
+            </h2>
+            <p class="subtitle" style="margin: 0.25rem 0 0 0;">Desperfectos reportados por el inquilino para este inmueble.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{{ url_for('views.reclamo_nuevo', nro_contrato=contrato.nro_contrato) }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Agregar Reclamo
+            </a>
+            <a href="{{ url_for('views.reclamos_dashboard', nro_contrato=contrato.nro_contrato) }}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-list-task"></i> Ver en Panel
+            </a>
+        </div>
+    </div>
+
+    {% if reclamos %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th># ID</th>
+                    <th>Fecha</th>
+                    <th>Tipo de Daño</th>
+                    <th>Descripción</th>
+                    <th>Urgencia</th>
+                    <th>Presupuesto Est.</th>
+                    <th>Estado</th>
+                    <th style="text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reclamos %}
+                <tr>
+                    <td><strong>#{{ r.id }}</strong></td>
+                    <td style="font-size: 0.85rem;">{{ r.fecha_reclamo.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; font-size: 0.8rem;">
+                            {{ r.tipo_dano }}
+                        </span>
+                    </td>
+                    <td style="font-size: 0.85rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ r.descripcion }}">
+                        {{ r.descripcion }}
+                    </td>
+                    <td>
+                        {% if r.urgencia == 'Urgente' %}
+                            <span class="badge badge-vendida"><i class="bi bi-fire"></i> Urgente</span>
+                        {% elif r.urgencia == 'Alta' %}
+                            <span class="badge badge-warning">Alta</span>
+                        {% elif r.urgencia == 'Media' %}
+                            <span class="badge badge-info">Media</span>
+                        {% else %}
+                            <span class="badge badge-disponible">Baja</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong style="color: #34d399;">${{ "{:,.2f}".format(r.presupuesto_estimado) }}</strong>
+                    </td>
+                    <td>
+                        {% if r.estado == 'resuelto' %}
+                            <span class="badge badge-disponible"><i class="bi bi-check-circle"></i> Resuelto</span>
+                        {% elif r.estado == 'en_reparacion' %}
+                            <span class="badge badge-warning"><i class="bi bi-tools"></i> En Reparación</span>
+                        {% elif r.estado == 'informado_propietario' %}
+                            <span class="badge badge-info"><i class="bi bi-send"></i> Informado al Dueño</span>
+                        {% elif r.estado == 'desestimado' %}
+                            <span class="badge badge-solicitado">Desestimado</span>
+                        {% else %}
+                            <span class="badge badge-vendida"><i class="bi bi-hourglass-split"></i> Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <a href="{{ url_for('views.reclamo_presupuesto_informe', id_reclamo=r.id) }}" class="btn btn-secondary btn-sm" title="Ver / Imprimir Presupuesto">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> Presupuesto
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2rem; background: rgba(15, 23, 42, 0.4); border-radius: var(--border-radius-sm); border: 1px dashed var(--card-border);">
+        <i class="bi bi-shield-check" style="font-size: 2rem; color: #10b981; display: block; margin-bottom: 0.5rem;"></i>
+        <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+            No se registran reclamos ni averías estructurales reportadas para este contrato.
+        </p>
+        <div style="margin-top: 0.8rem;">
+            <a href="{{ url_for('views.reclamo_nuevo', nro_contrato=contrato.nro_contrato) }}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-plus-circle"></i> Cargar Primer Reclamo
+            </a>
+        </div>
     </div>
     {% endif %}
 </div>

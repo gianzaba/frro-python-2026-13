@@ -1,15 +1,18 @@
 import os
 import sys
 from datetime import date, timedelta
+import pytest
 
 # Ensure parent directory is in sys.path
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 )
 
-import pytest
-import datos.db as db
-import business.controller as controller
+# Force database to use an in-memory SQLite for isolated tests
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
+import datos.db as db  # noqa: E402
+import business.controller as controller  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+
+{% block title %}Cargar Nuevo Agente{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-person-plus-fill" style="color: #818cf8;"></i> Cargar Nuevo Agente Comercial</h1>
+        <p class="subtitle">Registrar un nuevo miembro del equipo inmobiliario y otorgarle credenciales de acceso.</p>
+    </div>
+    <a href="{{ url_for('views.agentes_list') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver a la Lista
+    </a>
+</div>
+
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+    <h2 style="margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.45rem;">
+        <i class="bi bi-person-badge-fill" style="color: #818cf8;"></i> Datos Personales y Profesionales
+    </h2>
+
+    <form action="{{ url_for('views.agente_crear') }}" method="POST">
+        <div class="form-grid">
+            
+            <div class="form-group">
+                <label for="nombre"><i class="bi bi-person"></i> Nombre</label>
+                <input type="text" id="nombre" name="nombre" placeholder="Ej. Valeria" required>
+            </div>
+
+            <div class="form-group">
+                <label for="apellido"><i class="bi bi-person"></i> Apellido</label>
+                <input type="text" id="apellido" name="apellido" placeholder="Ej. Torres" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email"><i class="bi bi-envelope"></i> Correo Electrónico (Usuario)</label>
+                <input type="email" id="email" name="email" placeholder="valeria@inmogestion.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password"><i class="bi bi-key"></i> Contraseña de Acceso</label>
+                <input type="password" id="password" name="password" placeholder="Contraseña segura..." required>
+                <small style="color: var(--text-muted);">Se encriptará con algoritmo seguro antes de guardarse.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="rol"><i class="bi bi-shield-lock"></i> Rol en el Sistema</label>
+                <select id="rol" name="rol" required>
+                    <option value="Estándar" selected>Estándar (Comercialización y Operaciones)</option>
+                    <option value="Administrador">Administrador (Acceso total y Finanzas)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="matricula"><i class="bi bi-award"></i> Matrícula Profesional</label>
+                <input type="text" id="matricula" name="matricula" placeholder="Ej. MAT-9040" required>
+            </div>
+
+            <div class="form-group">
+                <label for="cuil"><i class="bi bi-card-checklist"></i> CUIL</label>
+                <input type="text" id="cuil" name="cuil" placeholder="Ej. 27-35667788-4" required>
+            </div>
+
+            <div class="form-group">
+                <label for="tipo_doc"><i class="bi bi-card-text"></i> Tipo de Documento</label>
+                <select id="tipo_doc" name="tipo_doc" required>
+                    <option value="DNI" selected>DNI</option>
+                    <option value="Pasaporte">Pasaporte</option>
+                    <option value="LC">LC</option>
+                    <option value="LE">LE</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nro_doc"><i class="bi bi-123"></i> Número de Documento</label>
+                <input type="text" id="nro_doc" name="nro_doc" placeholder="Ej. 35667788" required>
+            </div>
+
+            <div class="form-group">
+                <label for="telefono"><i class="bi bi-telephone"></i> Teléfono / Celular</label>
+                <input type="tel" id="telefono" name="telefono" placeholder="Ej. 3415558899" required>
+            </div>
+
+            <div class="form-group" style="grid-column: span 2;">
+                <label for="domicilio"><i class="bi bi-geo-alt"></i> Domicilio</label>
+                <input type="text" id="domicilio" name="domicilio" placeholder="Ej. Bv. Oroño 1120, Rosario" required>
+            </div>
+
+        </div>
+
+        <div style="display: flex; gap: 0.8rem; margin-top: 1.8rem; justify-content: flex-end;">
+            <a href="{{ url_for('views.agentes_list') }}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check2-circle"></i> Guardar Agente
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

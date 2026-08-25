@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+
+{% block title %}Registrar Nuevo Reclamo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-tools" style="color: #f59e0b;"></i> Registrar Reclamo / Incidencia</h1>
+        <p class="subtitle">Asentar roturas o reparaciones estructurales vinculadas a un contrato de locación activo.</p>
+    </div>
+    <a href="{{ url_for('views.reclamos_dashboard') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver a Reclamos
+    </a>
+</div>
+
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+    <h2 style="margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.45rem;">
+        <i class="bi bi-pencil-square" style="color: #818cf8;"></i> Datos de la Incidencia
+    </h2>
+
+    <form action="{{ url_for('views.reclamo_nuevo') }}" method="POST">
+        <div class="form-grid" style="grid-template-columns: 1fr;">
+            
+            <!-- Selector de Contrato -->
+            <div class="form-group">
+                <label for="nro_contrato"><i class="bi bi-file-earmark-text"></i> Contrato de Locación Asociado</label>
+                <select id="nro_contrato" name="nro_contrato" required>
+                    <option value="" disabled {% if not nro_contrato_seleccionado %}selected{% endif %}>Selecciona el contrato del inmueble...</option>
+                    {% for item in contratos %}
+                        {% set c = item.contrato %}
+                        {% set cli = item.cliente %}
+                        {% set prop = item.propiedad %}
+                        <option value="{{ c.nro_contrato }}" {% if nro_contrato_seleccionado == c.nro_contrato %}selected{% endif %}>
+                            Contrato #{{ c.nro_contrato }} — {{ prop.direccion }} (Inquilino: {{ cli.nombre_completo }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <small style="color: var(--text-muted);">Solo se listan contratos actualmente activos.</small>
+            </div>
+
+            <!-- Tipo de Daño & Urgencia -->
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                <div class="form-group">
+                    <label for="tipo_dano"><i class="bi bi-exclamation-triangle"></i> Tipo de Rotura / Rubro</label>
+                    <select id="tipo_dano" name="tipo_dano" required>
+                        <option value="Estructural / Techos / Muros">Estructural / Techos / Muros</option>
+                        <option value="Plomería / Humedad">Plomería / Humedad / Cañerías</option>
+                        <option value="Electricidad">Instalación Eléctrica / Tablero</option>
+                        <option value="Gas / Calefacción">Gas Natural / Calefón / Estufa</option>
+                        <option value="Cerrajería / Aberturas">Cerrajería / Ventanas / Puertas</option>
+                        <option value="Otro">Otro desperfecto</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="urgencia"><i class="bi bi-speedometer2"></i> Nivel de Urgencia</label>
+                    <select id="urgencia" name="urgencia" required>
+                        <option value="Baja">Baja (Mantenimiento general)</option>
+                        <option value="Media" selected>Media (Incomodidad habitable)</option>
+                        <option value="Alta">Alta (Riesgo potencial de daños mayores)</option>
+                        <option value="Urgente">Urgente (Emergencia / Inhabitable)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Presupuesto Estimado -->
+            <div class="form-group" style="margin-top: 0.5rem;">
+                <label for="presupuesto_estimado"><i class="bi bi-currency-dollar"></i> Presupuesto Estimado de Arreglo ($)</label>
+                <input type="number" step="0.01" min="0" id="presupuesto_estimado" name="presupuesto_estimado" value="0.00" required>
+                <small style="color: var(--text-muted);">Monto cotizado para la reparación para informar y validar con el propietario.</small>
+            </div>
+
+            <!-- Descripción detallada -->
+            <div class="form-group" style="margin-top: 0.5rem;">
+                <label for="descripcion"><i class="bi bi-card-text"></i> Descripción Detallada del Reclamo</label>
+                <textarea id="descripcion" name="descripcion" rows="4" required placeholder="Detallar la ubicación del desperfecto, causas observadas, ambiente afectado y gravedad de la rotura..."></textarea>
+            </div>
+
+        </div>
+
+        <div style="display: flex; gap: 0.8rem; margin-top: 1.8rem; justify-content: flex-end;">
+            <a href="{{ url_for('views.reclamos_dashboard') }}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check2-circle"></i> Registrar Reclamo
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
