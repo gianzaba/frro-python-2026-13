@@ -24,6 +24,31 @@
         <span class="badge badge-admin">{{ contratos|length }} Contratos</span>
     </div>
     
+    
+    <!-- Panel de Filtros Dinámicos -->
+    <div class="filter-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+        <div class="filter-panel-header" style="margin-bottom: 1rem;">
+            <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.45rem; margin: 0;">
+                <i class="bi bi-funnel-fill" style="color: #818cf8;"></i> Filtros Avanzados de Contratos
+            </h3>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">Filtrado interactivo en tiempo real</span>
+        </div>
+        <div class="filter-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="form-group">
+                <label for="propiedad-filter"><i class="bi bi-house-door"></i> Propiedad</label>
+                <select id="propiedad-filter" class="select2" style="width: 100%;">
+                    <option value="">Todas las propiedades</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="estado-filter"><i class="bi bi-check-circle"></i> Estado</label>
+                <select id="estado-filter" class="form-control" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                    <option value="">Todos los estados</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <div class="table-container">
         {% if contratos %}
         <table id="tabla-contratos" class="display compact" style="width: 100%;">
@@ -85,7 +110,7 @@
                                 <i class="bi bi-printer"></i>
                             </a>
                             {% if item.contrato.estado == 'solicitado' %}
-                            <form action="{{ url_for('views.contrato_firmar', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;">
+                            <form action="{{ url_for('views.contrato_firmar', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Confirmás la firma del contrato? Una vez firmado, el contrato y sus cláusulas quedarán bloqueados e inmutables.');">
                                 <button type="submit" class="btn btn-success btn-sm" title="Firmar y Celebrar Contrato">
                                     <i class="bi bi-pen"></i> Firmar
                                 </button>
@@ -107,11 +132,10 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
 $(document).ready(function() {
-    $('#tabla-contratos').DataTable({
+    var table = $('#tabla-contratos').DataTable({
         "language": {
             "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
         },
@@ -119,6 +143,49 @@ $(document).ready(function() {
         "ordering": true,
         "autoWidth": false,
         "responsive": true
+    });
+
+    // Populate Propiedades and Estados dynamically from the table rows
+    var propiedades = new Set();
+    var estados = new Set();
+
+    table.rows().every(function() {
+        var cellProp = $(this.node()).find('td').eq(2).find('div').text().trim();
+        if (!cellProp) {
+            cellProp = $(this.node()).find('td').eq(2).text().trim();
+        }
+        if (cellProp && cellProp !== "Propiedad eliminada") {
+            propiedades.add(cellProp);
+        }
+
+        var cellEstado = $(this.node()).find('td').eq(6).text().trim();
+        if (cellEstado) {
+            estados.add(cellEstado);
+        }
+    });
+
+    // Populate Propiedad Select
+    var propSelect = $('#propiedad-filter');
+    Array.from(propiedades).sort().forEach(function(p) {
+        propSelect.append(new Option(p, p));
+    });
+
+    // Populate Estado Select
+    var estadoSelect = $('#estado-filter');
+    Array.from(estados).sort().forEach(function(est) {
+        estadoSelect.append(new Option(est, est));
+    });
+
+    // Initialize Select2 on the property dropdown
+    $('#propiedad-filter').select2();
+
+    // Bind filters
+    $('#propiedad-filter').on('change', function() {
+        table.column(2).search(this.value).draw();
+    });
+
+    $('#estado-filter').on('change', function() {
+        table.column(6).search(this.value).draw();
     });
 });
 </script>

@@ -20,6 +20,7 @@ from business.entities import (
     AgendaVisita as AgendaVisitaBO,
     InscripcionVisita as InscripcionVisitaBO,
     Reclamo as ReclamoBO,
+    AuditLog as AuditLogBO,
 )
 
 # Import Data Access Layer
@@ -279,7 +280,9 @@ def solicitar_contrato(
 
 
 def firmar_contrato(
-    nro_contrato: int, fecha_contrato: Optional[date] = None
+    nro_contrato: int,
+    fecha_contrato: Optional[date] = None,
+    id_agente_solicitante: Optional[int] = None,
 ) -> ContratoBO:
     """
     Firma un contrato.
@@ -313,6 +316,20 @@ def firmar_contrato(
     else:
         propiedad.estado = "vendida"
     db.save_propiedad(propiedad)
+
+    agente_nombre = "Sistema"
+    if id_agente_solicitante:
+        ag = db.get_agente_by_id(id_agente_solicitante)
+        if ag:
+            agente_nombre = ag.nombre_completo
+
+    registrar_log_auditoria(
+        id_agente=id_agente_solicitante,
+        entidad="Contrato",
+        id_entidad=nro_contrato,
+        accion="Firmar",
+        descripcion=f"El agente {agente_nombre} firmó el contrato #{nro_contrato} de tipo {contrato.tipo_contrato} (Propiedad: {propiedad.direccion})."
+    )
 
     return saved_contrato
 
@@ -681,6 +698,7 @@ def registrar_pago_inquilino(
     fecha_pago: Optional[date] = None,
     ruta_comprobante: Optional[str] = None,
     monto_recargo: Optional[float] = None,
+    id_agente_solicitante: Optional[int] = None,
 ) -> PagoInquilinoBO:
     """
     Registra el pago de alquiler realizado por un inquilino, calculando recargos por mora si corresponde
@@ -728,7 +746,23 @@ def registrar_pago_inquilino(
         monto_total_abonado=monto_total,
         ruta_comprobante=ruta_comprobante,
     )
-    return db.save_pago_inquilino(bo)
+    saved_pago = db.save_pago_inquilino(bo)
+
+    agente_nombre = "Sistema"
+    if id_agente_solicitante:
+        ag = db.get_agente_by_id(id_agente_solicitante)
+        if ag:
+            agente_nombre = ag.nombre_completo
+
+    registrar_log_auditoria(
+        id_agente=id_agente_solicitante,
+        entidad="PagoInquilino",
+        id_entidad=saved_pago.id,
+        accion="RegistrarPago",
+        descripcion=f"El agente {agente_nombre} registró el pago del período {mes} para el contrato #{nro_contrato}. Monto: ${monto:,.2f}, Recargo: ${saved_pago.monto_recargo:,.2f}."
+    )
+
+    return saved_pago
 
 
 def obtener_datos_boleta_alquiler(nro_contrato: int, mes: str) -> dict:
@@ -952,6 +986,10 @@ def inscribir_visitante_a_turno(
     agenda = db.get_agenda_visita_by_id(id_agenda)
     if not agenda:
         raise ValueError("El turno de visita especificado no existe.")
+
+    propiedad = db.get_propiedad_by_id(agenda.id_propiedad)
+    if not propiedad or propiedad.estado.lower() != "disponible":
+        raise ValueError("No se pueden inscribir visitantes en propiedades que no estén disponibles.")
 
     inscriptos_actuales = db.count_inscripciones_by_agenda(id_agenda)
     if agenda.estado != "disponible" or inscriptos_actuales >= agenda.cupo_maximo:
@@ -1818,3 +1856,106 @@ def notificar_transferencia_propietario(id_pago_propietario: int) -> bool:
     )
 
     return enviar_email(propietario.email, asunto, cuerpo)
+
+
+def registrar_log_auditoria(
+    id_agente: Optional[int],
+    entidad: str,
+    id_entidad: Optional[int],
+    accion: str,
+    descripcion: str,
+) -> AuditLogBO:
+    """
+    Registra una acción en el log de auditoría del sistema.
+    """
+    bo = AuditLogBO(
+        id=None,
+        fecha_hora=datetime.now(),
+        id_agente=id_agente,
+        entidad=entidad,
+        id_entidad=id_entidad,
+        accion=accion,
+        descripcion=descripcion,
+    )
+    return db.save_audit_log(bo)
+
+
+def listar_logs_auditoria(id_agente_solicitante: int) -> List[AuditLogBO]:
+    """
+    Retorna todos los registros de auditoría del sistema.
+    Requiere que el agente solicitante sea Administrador.
+    """
+    if not es_administrador(id_agente_solicitante):
+        raise PermissionError(
+            "Acceso denegado: Solo los Administradores pueden ver el log de auditoría."
+        )
+    return db.list_audit_logs()
+
+
+def cancelar_inscripcion_visita(
+    id_inscripcion: int, id_agente_solicitante: Optional[int] = None
+) -> bool:
+    """
+    Cancela la inscripción de un visitante a un turno de visita.
+    Si el turno estaba completo, se vuelve a poner disponible.
+    """
+    db_obj = db.get_inscripcion_visita_by_id(id_inscripcion)
+    if not db_obj:
+        raise ValueError("La inscripción especificada no existe.")
+
+    id_agenda = db_obj.id_agenda
+    
+    agente_nombre = "Sistema"
+    if id_agente_solicitante:
+        ag = db.get_agente_by_id(id_agente_solicitante)
+        if ag:
+            agente_nombre = ag.nombre_completo
+
+    exito = db.delete_inscripcion_visita(id_inscripcion)
+    if exito:
+        agenda = db.get_agenda_visita_by_id(id_agenda)
+        if agenda:
+            inscriptos_actuales = db.count_inscripciones_by_agenda(id_agenda)
+            if inscriptos_actuales < agenda.cupo_maximo and agenda.estado == "completo":
+                agenda.estado = "disponible"
+                db.save_agenda_visita(agenda)
+            
+            # Registrar auditoría
+            registrar_log_auditoria(
+                id_agente=id_agente_solicitante,
+                entidad="InscripcionVisita",
+                id_entidad=id_inscripcion,
+                accion="Cancelar",
+                descripcion=f"El agente {agente_nombre} canceló la inscripción de {db_obj.nombre_visitante} a la agenda #{id_agenda}."
+            )
+        return True
+    return False
+
+
+def obtener_contratos_por_vencer(dias_anticipacion: int = 90) -> List[dict]:
+    """
+    Retorna contratos de alquiler activos que vencerán en los próximos dias_anticipacion días.
+    Asume una duración típica de 2 años (730 días) para contratos de alquiler desde la fecha de firma.
+    """
+    contratos = db.list_contratos()
+    por_vencer = []
+    hoy = date.today()
+
+    for c in contratos:
+        if c.estado == "activo" and c.tipo_contrato.lower() == "alquiler" and c.fecha_contrato:
+            vencimiento = c.fecha_contrato + timedelta(days=730)
+            dias_restantes = (vencimiento - hoy).days
+            if 0 <= dias_restantes <= dias_anticipacion:
+                cliente = db.get_cliente_by_id(c.id_cliente)
+                propiedad = db.get_propiedad_by_id(c.id_propiedad)
+                por_vencer.append({
+                    "contrato": c,
+                    "cliente": cliente,
+                    "propiedad": propiedad,
+                    "fecha_vencimiento": vencimiento,
+                    "dias_restantes": dias_restantes,
+                })
+    
+    por_vencer.sort(key=lambda x: x["dias_restantes"])
+    return por_vencer
+

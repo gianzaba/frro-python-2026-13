@@ -398,7 +398,7 @@
             </div>
 
             <div class="due-card late">
-                <div class="due-label"><i class="bi bi-clock-history"></i> 2° Vencimiento (Con Recargo por Mora)</div>
+                <div class="due-label"><i class="bi bi-clock-history"></i> 2° Vencimiento (Con Recargo por Demora)</div>
                 <div class="due-amount">${{ "{:,.2f}".format(total_2do_vencimiento) }}</div>
                 <div class="due-date">Hasta el <strong>{{ fecha_2do_vencimiento.strftime('%d/%m/%Y') }}</strong> (+${{ "{:,.2f}".format(recargo_estimado_2do_venc) }} recargo)</div>
             </div>
@@ -424,7 +424,7 @@
                 {% if pago_registrado.dias_retraso > 0 %}
                     ({{ pago_registrado.dias_retraso }} días fuera de término | Recargo: ${{ "{:,.2f}".format(pago_registrado.monto_recargo) }})
                 {% else %}
-                    (A término sin mora)
+                    (A término sin demora)
                 {% endif %}
             </div>
             <strong style="font-size: 1.1rem;">${{ "{:,.2f}".format(pago_registrado.monto_total_abonado) }}</strong>

@@ -113,6 +113,41 @@ def logout():
     return redirect(url_for("views.login"))
 
 
+@views_blueprint.route("/admin/audit-logs")
+@login_required
+@admin_required
+def audit_logs():
+    agente_id = session.get("agente_id")
+    logs = controller.listar_logs_auditoria(agente_id)
+    
+    enriched_logs = []
+    for log in logs:
+        agente = controller.obtener_agente(log.id_agente) if log.id_agente else None
+        enriched_logs.append({
+            "log": log,
+            "agente": agente
+        })
+        
+    return render_template("admin/audit_logs.html", logs=enriched_logs)
+
+
+@views_blueprint.route("/visitas/inscripciones/<int:id_inscripcion>/cancelar", methods=["POST"])
+@login_required
+def inscripcion_cancelar(id_inscripcion: int):
+    id_agenda = request.form.get("id_agenda", type=int)
+    id_propiedad = request.form.get("id_propiedad", type=int)
+    id_agente_solicitante = session.get("agente_id")
+    try:
+        controller.cancelar_inscripcion_visita(id_inscripcion, id_agente_solicitante=id_agente_solicitante)
+        flash("Inscripción de visita cancelada exitosamente y cupo liberado.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+        
+    if id_propiedad:
+        return redirect(url_for("views.propiedad_visitas", id_propiedad=id_propiedad))
+    return redirect(url_for("views.propiedades_list"))
+
+
 # --- Dashboard Routes ---
 
 
@@ -584,7 +619,7 @@ def contrato_crear():
 @login_required
 def contrato_firmar(nro_contrato: int):
     try:
-        controller.firmar_contrato(nro_contrato)
+        controller.firmar_contrato(nro_contrato, id_agente_solicitante=session.get("agente_id"))
         flash("Contrato firmado y activado exitosamente.", "success")
     except ValueError as e:
         flash(str(e), "danger")
@@ -743,7 +778,8 @@ def finanzas_dashboard():
     for p in pagos_inquilinos:
         c = controller.obtener_contrato(p.nro_contrato)
         cliente = controller.obtener_cliente(c.id_cliente) if c else None
-        enriched_pagos_inq.append({"pago": p, "cliente": cliente, "contrato": c})
+        prop = controller.obtener_propiedad(c.id_propiedad) if c else None
+        enriched_pagos_inq.append({"pago": p, "cliente": cliente, "contrato": c, "propiedad": prop})
 
     enriched_liquidaciones = []
     for liq in liquidaciones:
@@ -754,6 +790,7 @@ def finanzas_dashboard():
         )
 
     estado_alquileres = controller.obtener_estado_cobros_alquileres_mes()
+    contratos_por_vencer = controller.obtener_contratos_por_vencer(90)
 
     return render_template(
         "finanzas.html",
@@ -764,6 +801,7 @@ def finanzas_dashboard():
         total_cobrado=total_cobrado,
         total_comision=total_comision,
         payout_pendiente=payout_pendiente,
+        contratos_por_vencer=contratos_por_vencer,
     )
 
 
@@ -800,10 +838,11 @@ def pago_inquilino_crear():
             monto=monto,
             fecha_pago=fecha_pago,
             ruta_comprobante=ruta_comprobante,
+            id_agente_solicitante=session.get("agente_id"),
         )
         if pago.dias_retraso > 0:
             flash(
-                f"Pago registrado con {pago.dias_retraso} días de mora. "
+                f"Pago registrado con {pago.dias_retraso} días de demora. "
                 f"Recargo: ${pago.monto_recargo:.2f} (Total: ${pago.monto_total_abonado:.2f}).",
                 "warning",
             )
@@ -915,13 +954,13 @@ def finanzas_enviar_alertas_mora():
         total_env = resultado["total_enviados"]
         if total_env > 0:
             flash(
-                f"Se enviaron exitosamente {total_env} alertas de mora por correo a inquilinos "
+                f"Se enviaron exitosamente {total_env} alertas de demora por correo a inquilinos "
                 f"para el período {resultado['periodo']}.",
                 "success",
             )
         else:
             flash(
-                f"No se registraron nuevos inquilinos en mora pendientes de notificación "
+                f"No se registraron nuevos inquilinos en demora pendientes de notificación "
                 f"para el período {resultado['periodo']} (o ya fueron notificados en el día de hoy).",
                 "info",
             )
@@ -949,7 +988,7 @@ def finanzas_enviar_alerta_mora_individual(nro_contrato: int):
             id_agente_solicitante=agente_id,
         )
         flash(
-            f"📧 Correo de Alerta de Mora enviado con éxito a {resultado['inquilino']} "
+            f"📧 Correo de Alerta de Demora enviado con éxito a {resultado['inquilino']} "
             f"({resultado['email']}) por el Contrato #{resultado['nro_contrato']} "
             f"(Período {resultado['periodo']} - {resultado['dias_retraso']} días de retraso - "
             f"Total: ${resultado['monto_total']:,.2f}).",

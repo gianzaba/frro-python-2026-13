@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block title %}Logs de Auditoría{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-journal-text" style="color: #6366f1;"></i> Logs de Auditoría</h1>
+        <p class="subtitle">Historial cronológico de cambios, firmas de contratos y transacciones críticas en el sistema B2B.</p>
+    </div>
+</div>
+
+<div class="card" style="padding: 1.25rem;">
+    <div style="overflow-x: auto;">
+        <table class="table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--card-border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                    <th style="padding: 0.75rem 1rem;">Fecha y Hora</th>
+                    <th style="padding: 0.75rem 1rem;">Agente</th>
+                    <th style="padding: 0.75rem 1rem;">Entidad</th>
+                    <th style="padding: 0.75rem 1rem;">ID Ref</th>
+                    <th style="padding: 0.75rem 1rem;">Acción</th>
+                    <th style="padding: 0.75rem 1rem;">Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if logs %}
+                    {% for item in logs %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='none'">
+                        <td style="padding: 0.85rem 1rem; color: #ffffff; white-space: nowrap;">
+                            {{ item.log.fecha_hora.strftime('%d/%m/%Y %H:%M:%S') }}
+                        </td>
+                        <td style="padding: 0.85rem 1rem;">
+                            {% if item.agente %}
+                                <strong style="color: #f1f5f9;">{{ item.agente.nombre_completo }}</strong>
+                                <div style="font-size: 0.76rem; color: var(--text-secondary);">{{ item.agente.rol }}</div>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-style: italic;">Sistema</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.85rem 1rem;">
+                            <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; font-size: 0.75rem; font-weight: 600;">
+                                {{ item.log.entidad }}
+                            </span>
+                        </td>
+                        <td style="padding: 0.85rem 1rem; font-family: monospace; color: var(--text-secondary);">
+                            #{{ item.log.id_entidad if item.log.id_entidad else '-' }}
+                        </td>
+                        <td style="padding: 0.85rem 1rem;">
+                            {% if item.log.accion == 'Firmar' %}
+                                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.72rem; font-weight: 600;">Firmar</span>
+                            {% elif item.log.accion == 'RegistrarPago' %}
+                                <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; font-size: 0.72rem; font-weight: 600;">Pago</span>
+                            {% elif item.log.accion == 'Cancelar' %}
+                                <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 0.72rem; font-weight: 600;">Cancelar</span>
+                            {% else %}
+                                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 0.72rem; font-weight: 600;">{{ item.log.accion }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.85rem 1rem; color: var(--text-secondary); line-height: 1.4;">
+                            {{ item.log.descripcion }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted); font-style: italic;">
+                            No se han registrado operaciones de auditoría aún.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

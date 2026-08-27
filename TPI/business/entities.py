@@ -295,3 +295,24 @@ class Reclamo:
         self.estado = estado
         self.observaciones_resolucion = observaciones_resolucion
         self.fecha_resolucion = fecha_resolucion
+
+
+class AuditLog:
+    def __init__(
+        self,
+        id: Optional[int] = None,
+        fecha_hora: Optional[datetime] = None,
+        id_agente: Optional[int] = None,
+        entidad: str = "",
+        id_entidad: Optional[int] = None,
+        accion: str = "",
+        descripcion: str = "",
+    ):
+        self.id = id
+        self.fecha_hora = fecha_hora or datetime.now()
+        self.id_agente = id_agente
+        self.entidad = entidad
+        self.id_entidad = id_entidad
+        self.accion = accion
+        self.descripcion = descripcion
+

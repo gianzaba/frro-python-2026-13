@@ -9,9 +9,11 @@
         <p class="subtitle">{{ propiedad.direccion }} ({{ propiedad.zona }}) - #{{ propiedad.id }}</p>
     </div>
     <div style="display: flex; gap: 0.6rem;">
+        {% if propiedad.estado.lower() == 'disponible' %}
         <button type="button" onclick="document.getElementById('form-agendar-turno').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary">
             <i class="bi bi-plus-circle-fill"></i> Crear Turno de Visita
         </button>
+        {% endif %}
         <a href="{{ url_for('views.propiedad_detalle', id_propiedad=propiedad.id) }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Volver a la Ficha
         </a>
@@ -78,7 +80,16 @@
                         </div>
                         {% endif %}
                     </div>
-                    <span class="badge badge-admin" style="font-size: 0.68rem;">Inscripto</span>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span class="badge badge-admin" style="font-size: 0.68rem;">Inscripto</span>
+                        <form action="{{ url_for('views.inscripcion_cancelar', id_inscripcion=insc.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Seguro que querés cancelar la inscripción de {{ insc.nombre_visitante }}?');">
+                            <input type="hidden" name="id_agenda" value="{{ item.agenda.id }}">
+                            <input type="hidden" name="id_propiedad" value="{{ propiedad.id }}">
+                            <button type="submit" class="btn btn-sm btn-secondary" style="padding: 0.15rem 0.4rem; font-size: 0.72rem; line-height: 1;" title="Cancelar inscripción">
+                                <i class="bi bi-person-x"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -91,7 +102,7 @@
 
         <!-- Action Buttons -->
         <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-            {% if item.agenda.estado != 'cancelada' and item.cupo_disponible > 0 %}
+            {% if item.agenda.estado != 'cancelada' and item.cupo_disponible > 0 and propiedad.estado.lower() == 'disponible' %}
             <button type="button" onclick="openInscripcionModal({{ item.agenda.id }})" class="btn btn-sm btn-primary">
                 <i class="bi bi-person-plus-fill"></i> Inscribir Visitante
             </button>
@@ -114,12 +125,13 @@
 </div>
 {% endif %}
 
+{% if propiedad.estado.lower() == 'disponible' %}
 <!-- Form to Add New Visit Slot -->
 <div class="card" id="form-agendar-turno" style="max-width: 780px;">
     <h2 style="margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.45rem;">
         <i class="bi bi-calendar-plus-fill" style="color: #818cf8;"></i> Agendar Nuevo Turno de Visitas
     </h2>
-    <form action="{{ url_for('views.agenda_visita_crear', id_propiedad=propiedad.id) }}" method="POST">
+    <form action="{{ url_for('views.agenda_visita_crear', id_propiedad=propiedad.id) }}" method="POST" onsubmit="return confirm('¿Confirmar la creación de este nuevo turno de visita?');">
         <div class="form-grid">
             <div class="form-group">
                 <label for="fecha_hora_visita"><i class="bi bi-calendar-check"></i> Fecha y Hora de Visita</label>
@@ -159,6 +171,11 @@
         </div>
     </form>
 </div>
+{% else %}
+<div class="alert alert-warning" style="padding: 1.5rem; justify-content: center; max-width: 780px;">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.2rem;"></i> Esta propiedad se encuentra <strong>{{ propiedad.estado }}</strong>. No se pueden agendar nuevos turnos de visitas ni registrar interesados.
+</div>
+{% endif %}
 
 <!-- Modal to Register Visitor to Slot -->
 <div id="modal-inscribir" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5, 8, 16, 0.8); backdrop-filter: blur(8px); align-items: center; justify-content: center; z-index: 2000;">
@@ -170,7 +187,7 @@
             <button type="button" onclick="closeInscripcionModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.4rem; cursor: pointer;">&times;</button>
         </div>
         
-        <form id="form-inscribir-action" action="" method="POST">
+        <form id="form-inscribir-action" action="" method="POST" onsubmit="return confirm('¿Confirmar la inscripción del visitante a este turno?');">
             <input type="hidden" name="id_propiedad" value="{{ propiedad.id }}">
             
             <div class="form-group form-group-full">

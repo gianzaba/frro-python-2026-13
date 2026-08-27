@@ -132,7 +132,7 @@
         </div>
 
         {% if contrato.estado == 'solicitado' %}
-        <form action="{{ url_for('views.contrato_comision_actualizar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="border-top: 1px solid var(--card-border); padding-top: 0.9rem;">
+        <form action="{{ url_for('views.contrato_comision_actualizar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="border-top: 1px solid var(--card-border); padding-top: 0.9rem;" onsubmit="return confirm('¿Confirmar la actualización de los porcentajes de comisión y distribución del agente comercial?');">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.8rem;">
                 <div class="form-group">
                     <label for="comision_porcentaje">% Honorarios Totales</label>
@@ -204,7 +204,7 @@
 
             {% if contrato.estado == 'solicitado' %}
             <!-- Formulario de edición (oculto por defecto) -->
-            <form id="clausula-edit-{{ cl.id }}" action="{{ url_for('views.clausula_editar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: none; margin-top: 1rem; background: rgba(30, 41, 59, 0.7); padding: 1.1rem; border-radius: var(--border-radius-sm); border: 1px solid rgba(99, 102, 241, 0.3);">
+            <form id="clausula-edit-{{ cl.id }}" action="{{ url_for('views.clausula_editar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: none; margin-top: 1rem; background: rgba(30, 41, 59, 0.7); padding: 1.1rem; border-radius: var(--border-radius-sm); border: 1px solid rgba(99, 102, 241, 0.3);" onsubmit="return confirm('¿Confirmar los cambios realizados en esta cláusula?');">
                 <div class="form-group" style="margin-bottom: 0.8rem;">
                     <label>Título de la Cláusula</label>
                     <input type="text" name="titulo" value="{{ cl.titulo }}" required>
@@ -229,7 +229,7 @@
         <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.45rem;">
             <i class="bi bi-plus-circle-fill" style="color: #818cf8;"></i> Añadir Nueva Cláusula al Contrato
         </h3>
-        <form action="{{ url_for('views.clausula_agregar', nro_contrato=contrato.nro_contrato) }}" method="POST">
+        <form action="{{ url_for('views.clausula_agregar', nro_contrato=contrato.nro_contrato) }}" method="POST" onsubmit="return confirm('¿Confirmar el agregado de esta nueva cláusula al contrato?');">
             <div class="form-group" style="margin-bottom: 1rem;">
                 <label for="titulo">Título de la Cláusula</label>
                 <input type="text" id="titulo" name="titulo" placeholder="Ej: OCTAVA (DEPÓSITO EN GARANTÍA)" required>

@@ -18,7 +18,7 @@
         <i class="bi bi-person-vcard" style="color: #818cf8;"></i> Datos Personales del Cliente
     </h2>
     
-    <form action="{{ url_for('views.cliente_crear') }}" method="POST">
+    <form action="{{ url_for('views.cliente_crear') }}" method="POST" onsubmit="return confirm('¿Confirmar el registro del nuevo cliente?');">
         <div class="form-grid">
             <div class="form-group">
                 <label for="nombre"><i class="bi bi-person"></i> Nombre</label>

@@ -18,7 +18,7 @@
         <i class="bi bi-pencil-square" style="color: #818cf8;"></i> Datos de la Incidencia
     </h2>
 
-    <form action="{{ url_for('views.reclamo_nuevo') }}" method="POST">
+    <form action="{{ url_for('views.reclamo_nuevo') }}" method="POST" onsubmit="return confirm('¿Confirmás la creación de este reclamo para el contrato especificado?');">
         <div class="form-grid" style="grid-template-columns: 1fr;">
             
             <!-- Selector de Contrato -->

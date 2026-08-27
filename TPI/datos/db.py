@@ -32,6 +32,7 @@ from business.entities import (  # noqa: E402
     AgendaVisita as AgendaVisitaBO,
     InscripcionVisita as InscripcionVisitaBO,
     Reclamo as ReclamoBO,
+    AuditLog as AuditLogBO,
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -295,6 +296,21 @@ class ReclamoTable(Base):
     cliente = relationship("ClienteTable", foreign_keys=[id_cliente])
 
 
+class AuditLogTable(Base):
+    __tablename__ = "logs_auditoria"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fecha_hora = Column(DateTime, default=datetime.now, nullable=False)
+    id_agente = Column(Integer, ForeignKey("persona.id"), nullable=True)
+    entidad = Column(String(50), nullable=False)
+    id_entidad = Column(Integer, nullable=True)
+    accion = Column(String(50), nullable=False)
+    descripcion = Column(String(500), nullable=False)
+
+    agente = relationship("AgenteTable", foreign_keys=[id_agente])
+
+
+
 # --- Database Schema Creation ---
 
 
@@ -332,6 +348,7 @@ def init_db(reset: bool = False):
             "agenda_visita",
             "inscripcion_visita",
             "reclamo",
+            "logs_auditoria",
         ]
 
         needs_recreate = False
@@ -570,6 +587,21 @@ def to_bo_reclamo(db_obj: Optional[ReclamoTable]) -> Optional[ReclamoBO]:
         observaciones_resolucion=db_obj.observaciones_resolucion or "",
         fecha_resolucion=db_obj.fecha_resolucion,
     )
+
+
+def to_bo_audit_log(obj: Optional[AuditLogTable]) -> Optional[AuditLogBO]:
+    if not obj:
+        return None
+    return AuditLogBO(
+        id=obj.id,
+        fecha_hora=obj.fecha_hora,
+        id_agente=obj.id_agente,
+        entidad=obj.entidad,
+        id_entidad=obj.id_entidad,
+        accion=obj.accion,
+        descripcion=obj.descripcion,
+    )
+
 
 
 # --- Data Access API ---
@@ -1598,3 +1630,66 @@ def list_reclamos_by_contrato(nro_contrato: int) -> List[ReclamoBO]:
         return [to_bo_reclamo(o) for o in objs]
     finally:
         db.close()
+
+
+def save_audit_log(bo: AuditLogBO) -> AuditLogBO:
+    db = SessionLocal()
+    try:
+        table_obj = AuditLogTable(
+            fecha_hora=bo.fecha_hora,
+            id_agente=bo.id_agente,
+            entidad=bo.entidad,
+            id_entidad=bo.id_entidad,
+            accion=bo.accion,
+            descripcion=bo.descripcion,
+        )
+        db.add(table_obj)
+        db.commit()
+        db.refresh(table_obj)
+        return to_bo_audit_log(table_obj)
+    finally:
+        db.close()
+
+
+def list_audit_logs() -> List[AuditLogBO]:
+    db = SessionLocal()
+    try:
+        objs = (
+            db.query(AuditLogTable)
+            .order_by(AuditLogTable.fecha_hora.desc(), AuditLogTable.id.desc())
+            .all()
+        )
+        return [to_bo_audit_log(o) for o in objs]
+    finally:
+        db.close()
+
+
+def get_inscripcion_visita_by_id(id_inscripcion: int) -> Optional[InscripcionVisitaBO]:
+    db = SessionLocal()
+    try:
+        obj = (
+            db.query(InscripcionVisitaTable)
+            .filter(InscripcionVisitaTable.id == id_inscripcion)
+            .first()
+        )
+        return to_bo_inscripcion_visita(obj)
+    finally:
+        db.close()
+
+
+def delete_inscripcion_visita(id_inscripcion: int) -> bool:
+    db = SessionLocal()
+    try:
+        obj = (
+            db.query(InscripcionVisitaTable)
+            .filter(InscripcionVisitaTable.id == id_inscripcion)
+            .first()
+        )
+        if obj:
+            db.delete(obj)
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
+

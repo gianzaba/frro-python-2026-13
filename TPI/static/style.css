@@ -927,3 +927,186 @@ input[type="file"]::file-selector-button:hover {
         padding: 1.4rem 1.1rem;
     }
 }
+
+/* --- Hover-expanding Collapsible Sidebar in Desktop --- */
+@media (min-width: 993px) {
+    .sidebar {
+        width: 75px;
+        padding: 1.5rem 0.75rem;
+        overflow: hidden;
+        transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s ease, box-shadow 0.35s ease;
+    }
+    
+    .sidebar:hover {
+        width: 260px;
+        padding: 1.5rem 1.1rem;
+        box-shadow: 10px 0 40px rgba(0, 0, 0, 0.45);
+    }
+    
+    .main-content {
+        margin-left: 75px;
+        max-width: calc(100vw - 75px);
+        transition: margin-left 0.35s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    /* Hide branding text, titles, user info, and link texts when collapsed */
+    .sidebar .brand span,
+    .sidebar .brand-badge,
+    .sidebar .nav-section-title,
+    .sidebar .nav-links li a span,
+    .sidebar .user-panel .user-card .user-details {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.15s ease, visibility 0.15s;
+        white-space: nowrap;
+    }
+    
+    /* Show branding text, titles, user info, and link texts when hovered */
+    .sidebar:hover .brand span,
+    .sidebar:hover .brand-badge,
+    .sidebar:hover .nav-section-title,
+    .sidebar:hover .nav-links li a span,
+    .sidebar:hover .user-panel .user-card .user-details {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.3s ease 0.15s, visibility 0.3s ease 0.15s;
+    }
+
+    /* Adjust navigation link container inside collapsed state */
+    .sidebar .nav-links a {
+        justify-content: flex-start;
+        min-width: 210px; /* Keep elements aligned to prevent wrapping inside links */
+    }
+    
+    /* Keep brand content aligned and centered */
+    .sidebar .brand {
+        display: flex;
+        align-items: center;
+        min-width: 210px;
+        margin-bottom: 2rem;
+    }
+    
+    .sidebar .brand i {
+        font-size: 1.5rem;
+        margin-right: 0.8rem;
+        margin-left: 0.3rem;
+    }
+    
+    .sidebar .user-panel .user-card {
+        min-width: 210px;
+    }
+}
+
+/* --- Tabbed Interface System --- */
+.tabs-container {
+    margin-bottom: 1.8rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.tabs-buttons {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none; /* Hide scrollbars */
+}
+.tabs-buttons::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.8rem 1.3rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.tab-btn.active {
+    color: #818cf8;
+    border-bottom-color: #818cf8;
+    background: linear-gradient(180deg, rgba(129, 140, 248, 0) 60%, rgba(129, 140, 248, 0.06) 100%);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: tabFadeIn 0.35s ease;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Actions Dropdown (CSS-only Hover Dropdown) --- */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 0.5rem;
+    background: #0f172a; /* Deep Dark Blue card bg */
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    z-index: 1000;
+    min-width: 220px;
+    padding: 0.5rem 0;
+    backdrop-filter: blur(10px);
+}
+
+.dropdown:hover .dropdown-menu {
+    display: block;
+    animation: fadeInDropdown 0.2s ease;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1.1rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    width: 100%;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.dropdown-item:hover {
+    color: #ffffff;
+    background: rgba(99, 102, 241, 0.15);
+}
+
+@keyframes fadeInDropdown {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+

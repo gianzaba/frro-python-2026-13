@@ -11,32 +11,40 @@
 <div class="page-header">
     <div>
         <h1><i class="bi bi-cash-stack" style="color: #818cf8;"></i> Gestión Financiera B2B</h1>
-        <p class="subtitle">Auditoría contable, cobro de alquileres con mora, boletas de pago y liquidaciones</p>
+        <p class="subtitle">Auditoría contable, cobro de alquileres con demora, boletas de pago y liquidaciones</p>
     </div>
     
-    <!-- 4 Action Buttons Aligned -->
-    <div class="btn-group-actions">
-        {% if es_admin %}
-            <a href="{{ url_for('views.finanzas_exportar', tipo_reporte='cobros') }}" class="btn btn-secondary">
-                <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Cobros
-            </a>
-            <a href="{{ url_for('views.finanzas_exportar', tipo_reporte='liquidaciones') }}" class="btn btn-secondary">
-                <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Liquidaciones
-            </a>
-            <button type="button" onclick="openModal('modal-mora')" class="btn btn-secondary" title="Enviar correos automáticos de aviso a inquilinos con pago fuera de término">
-                <i class="bi bi-envelope-exclamation-fill" style="color: #f59e0b;"></i> Enviar Alertas de Mora
-            </button>
-            <button type="button" onclick="openModal('modal-liquidar')" class="btn btn-secondary">
-                <i class="bi bi-gear-fill"></i> Liquidar Período
-            </button>
-        {% else %}
-            <span class="badge badge-solicitado" title="Solo Administradores pueden generar o exportar liquidaciones">
-                <i class="bi bi-lock-fill"></i> Modo Lectura
-            </span>
-        {% endif %}
+    <!-- Restructured Actions: Main Action & Dropdown -->
+    <div class="btn-group-actions" style="display: flex; gap: 0.65rem; align-items: center;">
         <button type="button" onclick="openModal('modal-pago')" class="btn btn-primary">
             <i class="bi bi-plus-circle-fill"></i> Registrar Pago Inquilino
         </button>
+        
+        {% if es_admin %}
+        <div class="dropdown">
+            <button type="button" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.45rem;">
+                <i class="bi bi-gear-fill"></i> Acciones del Período <i class="bi bi-chevron-down" style="font-size: 0.75rem;"></i>
+            </button>
+            <div class="dropdown-menu">
+                <a href="{{ url_for('views.finanzas_exportar', tipo_reporte='cobros') }}" class="dropdown-item">
+                    <i class="bi bi-file-earmark-spreadsheet" style="color: #34d399;"></i> Exportar Cobros (CSV)
+                </a>
+                <a href="{{ url_for('views.finanzas_exportar', tipo_reporte='liquidaciones') }}" class="dropdown-item">
+                    <i class="bi bi-file-earmark-spreadsheet" style="color: #818cf8;"></i> Exportar Liquidaciones (CSV)
+                </a>
+                <button type="button" onclick="openModal('modal-mora')" class="dropdown-item">
+                    <i class="bi bi-envelope-exclamation-fill" style="color: #f59e0b;"></i> Avisar Demoras por Mail
+                </button>
+                <button type="button" onclick="openModal('modal-liquidar')" class="dropdown-item">
+                    <i class="bi bi-calculator" style="color: #a5b4fc;"></i> Liquidar Período Contable
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <span class="badge badge-solicitado" title="Solo Administradores pueden generar o exportar liquidaciones">
+            <i class="bi bi-lock-fill"></i> Modo Lectura
+        </span>
+        {% endif %}
     </div>
 </div>
 
@@ -65,254 +73,432 @@
     </div>
 </div>
 
-<!-- Panel de Filtros Dinámicos Compacto -->
-<div class="filter-panel">
-    <div class="filter-panel-header">
-        <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.45rem;">
-            <i class="bi bi-sliders2" style="color: #818cf8;"></i> Filtros Rápidos de Tablas
-        </h3>
-        <span style="font-size: 0.78rem; color: var(--text-secondary);">Filtrado interactivo en tiempo real sobre los listados</span>
-    </div>
-    <div class="filter-grid">
-        <div class="form-group">
-            <label for="custom-search-input"><i class="bi bi-search"></i> Búsqueda Global</label>
-            <input type="text" id="custom-search-input" placeholder="Buscar por contrato, inquilino o propietario...">
-        </div>
-        <div class="form-group">
-            <label for="period-filter-input"><i class="bi bi-calendar3"></i> Período (AAAA-MM)</label>
-            <input type="text" id="period-filter-input" placeholder="Ej. 2026-08" pattern="[0-9]{4}-[0-9]{2}">
-        </div>
-    </div>
-</div>
-
-<!-- Tabla 0: Estado de Cobros de Alquileres del Mes y Alertas de Mora Directas -->
-<div class="card" style="margin-bottom: 2rem; border-left: 4px solid #f59e0b;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
-        <h2 style="display: flex; align-items: center; gap: 0.45rem; margin: 0;">
-            <i class="bi bi-envelope-exclamation-fill" style="color: #f59e0b;"></i> Estado de Cobro del Mes & Alertas de Mora
+{% if contratos_por_vencer %}
+<!-- Alerta de Contratos por Vencer (Próximos 90 días) - High Priority Block -->
+<div class="card" style="margin-bottom: 2.2rem; border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.05); padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <h2 style="display: flex; align-items: center; gap: 0.45rem; margin: 0; color: #f87171; font-size: 1.15rem;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Alerta de Contratos Próximos a Vencer (90 días)
         </h2>
-        <span style="font-size: 0.78rem; color: var(--text-secondary);">
-            <i class="bi bi-info-circle"></i> Botón <strong>"Mandar Mail"</strong> habilitado únicamente para alquileres con pago vencido (> día 10)
+        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-weight: bold; font-size: 0.78rem;">
+            {{ contratos_por_vencer|length }} Contratos
         </span>
     </div>
-    <div class="table-container">
-        <table id="tabla-estado-mora" class="display compact" style="width:100%">
+    <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 1rem; margin-top: 0;">
+        Los siguientes contratos comerciales/residenciales están próximos a vencer. Se recomienda iniciar negociaciones de prórroga o renovación.
+    </p>
+    <div style="overflow-x: auto;">
+        <table class="table" style="width:100%; border-collapse: collapse; text-align: left; font-size: 0.84rem;">
             <thead>
-                <tr>
-                    <th>CONTRATO</th>
-                    <th>INMUEBLE</th>
-                    <th>INQUILINO & CORREO</th>
-                    <th>CANON BASE</th>
-                    <th>ESTADO COBRO</th>
-                    <th>RECARGO / TOTAL</th>
-                    <th>ÚLTIMO AVISO</th>
-                    <th>ACCIÓN</th>
+                <tr style="border-bottom: 1px solid rgba(239, 68, 68, 0.2); color: var(--text-muted); font-size: 0.76rem; text-transform: uppercase;">
+                    <th style="padding: 0.5rem 0.75rem;">Contrato</th>
+                    <th style="padding: 0.5rem 0.75rem;">Inquilino</th>
+                    <th style="padding: 0.5rem 0.75rem;">Inmueble</th>
+                    <th style="padding: 0.5rem 0.75rem;">Fecha Vencimiento</th>
+                    <th style="padding: 0.5rem 0.75rem;">Días Restantes</th>
+                    <th style="padding: 0.5rem 0.75rem; text-align: right;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                {% if estado_alquileres %}
-                    {% for item in estado_alquileres %}
-                        <tr>
-                            <td>
-                                <strong>Contrato #{{ item.contrato.nro_contrato }}</strong>
-                            </td>
-                            <td>{{ item.propiedad.direccion if item.propiedad else 'N/A' }}</td>
-                            <td>
-                                <div><strong>{{ item.cliente.nombre_completo if item.cliente else 'N/A' }}</strong></div>
-                                <small style="color: var(--text-muted);"><i class="bi bi-envelope"></i> {{ item.cliente.email if item.cliente else 'Sin email' }}</small>
-                            </td>
-                            <td><strong>${{ "{:,.2f}".format(item.contrato.monto) }}</strong></td>
-                            <td>
-                                {% if item.esta_pagado %}
-                                    <span class="badge badge-activo" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #10b981;">
-                                        <i class="bi bi-check-circle-fill"></i> Pagado
-                                    </span>
-                                {% elif item.esta_vencido %}
-                                    <span class="badge badge-pendiente" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid #ef4444;">
-                                        <i class="bi bi-exclamation-triangle-fill"></i> Vencido (+{{ item.dias_retraso }}d mora)
-                                    </span>
-                                {% else %}
-                                    <span class="badge badge-solicitado" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid #6366f1;">
-                                        <i class="bi bi-clock-fill"></i> En Término (Vence día 10)
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if item.esta_pagado %}
-                                    <span style="color: #34d399;">$0.00 / ${{ "{:,.2f}".format(item.contrato.monto) }}</span>
-                                {% elif item.esta_vencido %}
-                                    <span style="color: #f87171; font-weight: 700;">+${{ "{:,.2f}".format(item.monto_recargo) }}</span>
-                                    <div style="font-size: 0.8rem; color: #fff;">Total: ${{ "{:,.2f}".format(item.monto_total) }}</div>
-                                {% else %}
-                                    <span style="color: var(--text-muted);">${{ "{:,.2f}".format(item.contrato.monto) }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if item.fecha_ultimo_aviso_mora %}
-                                    <span style="font-size: 0.82rem; color: #a5b4fc;">
-                                        <i class="bi bi-send-check"></i> {{ item.fecha_ultimo_aviso_mora.strftime('%d/%m/%Y') }}
-                                    </span>
-                                {% else %}
-                                    <span style="font-size: 0.82rem; color: var(--text-muted);">Nunca</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if item.esta_vencido and es_admin %}
-                                    <form action="{{ url_for('views.finanzas_enviar_alerta_mora_individual', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;">
-                                        <input type="hidden" name="mes" value="{{ item.mes }}">
-                                        <button type="submit" class="btn btn-warning btn-sm" style="background: #f59e0b; color: #000; font-weight: 700; border: none; padding: 0.35rem 0.65rem;" title="Enviar correo de notificación de mora a {{ item.cliente.email if item.cliente else 'inquilino' }}">
-                                            <i class="bi bi-send-fill"></i> Mandar Mail
-                                        </button>
-                                    </form>
-                                {% elif item.esta_pagado %}
-                                    <span style="font-size: 0.8rem; color: #34d399;"><i class="bi bi-shield-check"></i> Al Día</span>
-                                {% else %}
-                                    <span style="font-size: 0.8rem; color: var(--text-muted);">No Vencido</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% else %}
+                {% for item in contratos_por_vencer %}
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 0.6rem 0.75rem; font-weight: bold; color: #ffffff;">
+                        <a href="{{ url_for('views.contrato_detalle', nro_contrato=item.contrato.nro_contrato) }}" style="color: #818cf8; text-decoration: none;">
+                            #{{ item.contrato.nro_contrato }}
+                        </a>
+                    </td>
+                    <td style="padding: 0.6rem 0.75rem; color: var(--text-primary);">
+                        {{ item.cliente.nombre_completo if item.cliente else 'N/A' }}
+                    </td>
+                    <td style="padding: 0.6rem 0.75rem; color: var(--text-secondary);">
+                        {{ item.propiedad.direccion if item.propiedad else 'N/A' }}
+                    </td>
+                    <td style="padding: 0.6rem 0.75rem; color: #ffffff;">
+                        {{ item.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                    </td>
+                    <td style="padding: 0.6rem 0.75rem;">
+                        {% if item.dias_restantes <= 30 %}
+                            <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-weight: bold; font-size: 0.72rem;">
+                                {{ item.dias_restantes }} días (Urgente)
+                            </span>
+                        {% else %}
+                            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-weight: bold; font-size: 0.72rem;">
+                                {{ item.dias_restantes }} días
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.6rem 0.75rem; text-align: right;">
+                        <a href="{{ url_for('views.contrato_detalle', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-sm btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.76rem;">
+                            <i class="bi bi-eye"></i> Gestionar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabs Navigation Header -->
+<div class="tabs-container">
+    <div class="tabs-buttons">
+        <button type="button" class="tab-btn active" onclick="switchTab(event, 'tab-estado-mes')">
+            <i class="bi bi-calendar2-week"></i> 1. Estado del Mes Actual
+        </button>
+        <button type="button" class="tab-btn" onclick="switchTab(event, 'tab-historial-cobros')">
+            <i class="bi bi-clock-history"></i> 2. Historial de Cobros
+        </button>
+        <button type="button" class="tab-btn" onclick="switchTab(event, 'tab-liquidaciones')">
+            <i class="bi bi-bank"></i> 3. Liquidaciones a Propietarios
+        </button>
+    </div>
+</div>
+
+<!-- Tab 1: Estado del Mes Actual (Inquilinos, Avisos de Mora) -->
+<div id="tab-estado-mes" class="tab-content active">
+    <!-- Panel de Filtros Tab 1 -->
+    <div class="filter-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+        <div class="filter-panel-header" style="margin-bottom: 1rem;">
+            <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.45rem; margin: 0;">
+                <i class="bi bi-funnel-fill" style="color: #818cf8;"></i> Filtros Rápidos: Estado del Mes Actual
+            </h3>
+        </div>
+        <div class="filter-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="form-group">
+                <label for="t1-propiedad-filter"><i class="bi bi-house-door"></i> Propiedad</label>
+                <select id="t1-propiedad-filter" class="select2" style="width: 100%;">
+                    <option value="">Todas las propiedades</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="t1-estado-filter"><i class="bi bi-check-circle"></i> Estado Cobro</label>
+                <select id="t1-estado-filter" class="form-control" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                    <option value="">Todos los estados</option>
+                    <option value="Pagado">Pagado</option>
+                    <option value="Vencido">Vencido</option>
+                    <option value="En Término">En Término</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info-Banner about Mora -->
+    <div class="alert alert-info" style="margin-bottom: 1.5rem; font-size: 0.84rem; display: flex; align-items: flex-start; gap: 0.6rem; background: rgba(56, 189, 248, 0.05); border-color: rgba(56, 189, 248, 0.25);">
+        <i class="bi bi-info-circle-fill" style="color: #38bdf8; font-size: 1.15rem; margin-top: 0.1rem;"></i>
+        <div>
+            <strong>Regla de Cobro:</strong> Los alquileres vencen el <strong>día 10 de cada mes</strong>. Todo pago registrado a partir del día 11 es considerado fuera de término y el sistema aplica un recargo automático por demora del <strong>0.2% diario</strong> sobre el monto de alquiler base por cada día de retraso.
+        </div>
+    </div>
+
+    <!-- Tabla 0: Estado de Cobros de Alquileres del Mes y Alertas de Mora Directas -->
+    <div class="card" style="margin-bottom: 2rem; border-left: 4px solid #f59e0b;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <h2 style="display: flex; align-items: center; gap: 0.45rem; margin: 0; font-size: 1.15rem;">
+                <i class="bi bi-envelope-exclamation-fill" style="color: #f59e0b;"></i> Estado de Cobro del Mes & Alertas de Demora
+            </h2>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">
+                <i class="bi bi-info-circle"></i> Botón <strong>"Mandar Mail"</strong> habilitado para alquileres con pago vencido (> día 10)
+            </span>
+        </div>
+        <div class="table-container">
+            <table id="tabla-estado-mora" class="display compact" style="width:100%">
+                <thead>
                     <tr>
-                        <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
-                            No hay contratos de alquiler activos registrados actualmente.
-                        </td>
+                        <th>CONTRATO</th>
+                        <th>INMUEBLE</th>
+                        <th>INQUILINO & CORREO</th>
+                        <th>CANON BASE</th>
+                        <th>ESTADO COBRO</th>
+                        <th>RECARGO / TOTAL</th>
+                        <th>ÚLTIMO AVISO</th>
+                        <th>ACCIÓN</th>
                     </tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Tabla 1: Historial de Cobros a Inquilinos con Mora y Comprobante -->
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-        <h2 style="display: flex; align-items: center; gap: 0.45rem;">
-            <i class="bi bi-journal-check" style="color: #34d399;"></i> Historial de Cobros y Seguimiento de Mora
-        </h2>
-        <span style="font-size: 0.78rem; color: var(--text-secondary);">Vencimiento estándar: día 10 del mes</span>
-    </div>
-    <div class="table-container">
-        <table id="tabla-pagos" class="display compact" style="width:100%">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>FECHA PAGO</th>
-                    <th>N° CONTRATO</th>
-                    <th>INQUILINO</th>
-                    <th>PERÍODO</th>
-                    <th>MONTO BASE</th>
-                    <th>ESTADO MORA</th>
-                    <th>TOTAL COBRADO</th>
-                    <th>COMPROBANTE</th>
-                    <th>ACCIONES</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if pagos_inquilinos %}
-                    {% for item in pagos_inquilinos %}
-                        <tr>
-                            <td><strong>#{{ item.pago.id }}</strong></td>
-                            <td>{{ item.pago.fecha_pago.strftime('%d/%m/%Y') }}</td>
-                            <td>Contrato #{{ item.pago.nro_contrato }}</td>
-                            <td>{{ item.cliente.nombre_completo if item.cliente else 'N/A' }}</td>
-                            <td><strong>{{ item.pago.mes_correspondiente }}</strong></td>
-                            <td>${{ "{:,.2f}".format(item.pago.monto) }}</td>
-                            <td>
-                                {% if item.pago.dias_retraso > 0 %}
-                                    <span class="badge badge-pendiente" title="Pagó después del vencimiento">
-                                        +{{ item.pago.dias_retraso }} días (Mora: ${{ "{:,.2f}".format(item.pago.monto_recargo) }})
-                                    </span>
-                                {% else %}
-                                    <span class="badge badge-activo">A Término</span>
-                                {% endif %}
-                            </td>
-                            <td><strong style="color: #34d399;">${{ "{:,.2f}".format(item.pago.monto_total_abonado or item.pago.monto) }}</strong></td>
-                            <td>
-                                {% if item.pago.ruta_comprobante %}
-                                    <a href="/{{ item.pago.ruta_comprobante }}" target="_blank" class="btn btn-sm btn-secondary" title="Ver comprobante adjunto">
-                                        <i class="bi bi-file-earmark-arrow-down"></i> Ver Adjunto
-                                    </a>
-                                {% else %}
-                                    <span style="color: var(--text-muted); font-size: 0.78rem;">Sin adjunto</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('views.boleta_alquiler', nro_contrato=item.pago.nro_contrato, mes=item.pago.mes_correspondiente) }}" target="_blank" class="btn btn-sm btn-primary" title="Generar / Ver Boleta PDF">
-                                    <i class="bi bi-file-earmark-pdf"></i> Boleta
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Tabla 2: Liquidaciones a Propietarios -->
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-        <h2 style="display: flex; align-items: center; gap: 0.45rem;">
-            <i class="bi bi-receipt" style="color: #818cf8;"></i> Liquidaciones y Transferencias a Propietarios
-        </h2>
-        <span style="font-size: 0.78rem; color: var(--text-secondary);">Fórmula: Neto = Cobrado - Comisión Inmobiliaria</span>
-    </div>
-    <div class="table-container">
-        <table id="tabla-liquidaciones" class="display compact" style="width:100%">
-            <thead>
-                <tr>
-                    <th>PERÍODO</th>
-                    <th>N° CONTRATO</th>
-                    <th>PROPIETARIO</th>
-                    <th>MONTO BRUTO</th>
-                    <th>COMISIÓN</th>
-                    <th>MONTO NETO</th>
-                    <th>ESTADO</th>
-                    <th>ACCIÓN</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if liquidaciones %}
-                    {% for item in liquidaciones %}
-                        <tr>
-                            <td><strong>{{ item.liq.mes_correspondiente }}</strong></td>
-                            <td>#{{ item.liq.nro_contrato }}</td>
-                            <td>{{ item.propietario.nombre_completo if item.propietario else 'N/A' }}</td>
-                            <td>${{ "{:,.2f}".format(item.liq.monto_bruto) }}</td>
-                            <td>
-                                ${{ "{:,.2f}".format(item.liq.comision) }}
-                                <small style="color: var(--text-secondary); display: block; font-size: 0.7rem;">({{ item.contrato.comision_porcentaje if item.contrato else 10 }}%)</small>
-                            </td>
-                            <td><strong style="color: #34d399;">${{ "{:,.2f}".format(item.liq.monto_neto) }}</strong></td>
-                            <td>
-                                {% if item.liq.estado == 'pagado' %}
-                                    <span class="badge badge-activo">Pagado</span>
-                                    <small style="color: var(--text-secondary); display: block; font-size: 0.68rem;">{{ item.liq.fecha_pago.strftime('%d/%m/%Y') if item.liq.fecha_pago }}</small>
-                                {% else %}
-                                    <span class="badge badge-pendiente">Pendiente</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if item.liq.estado == 'pendiente' %}
-                                    {% if es_admin %}
-                                        <form action="{{ url_for('views.liquidacion_pagar', id_pago=item.liq.id) }}" method="POST" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-primary">
-                                                <i class="bi bi-check2-circle"></i> Transferir
+                </thead>
+                <tbody>
+                    {% if estado_alquileres %}
+                        {% for item in estado_alquileres %}
+                            <tr>
+                                <td>
+                                    <strong>Contrato #{{ item.contrato.nro_contrato }}</strong>
+                                </td>
+                                <td>{{ item.propiedad.direccion if item.propiedad else 'N/A' }}</td>
+                                <td>
+                                    <div><strong>{{ item.cliente.nombre_completo if item.cliente else 'N/A' }}</strong></div>
+                                    <small style="color: var(--text-muted);"><i class="bi bi-envelope"></i> {{ item.cliente.email if item.cliente else 'Sin email' }}</small>
+                                </td>
+                                <td><strong>${{ "{:,.2f}".format(item.contrato.monto) }}</strong></td>
+                                <td>
+                                    {% if item.esta_pagado %}
+                                        <span class="badge badge-activo" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #10b981;">
+                                            <i class="bi bi-check-circle-fill"></i> Pagado
+                                        </span>
+                                    {% elif item.esta_vencido %}
+                                        <span class="badge badge-pendiente" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid #ef4444;">
+                                            <i class="bi bi-exclamation-triangle-fill"></i> Vencido (+{{ item.dias_retraso }}d demora)
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-solicitado" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid #6366f1;">
+                                            <i class="bi bi-clock-fill"></i> En Término (Vence día 10)
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.esta_pagado %}
+                                        <span style="color: #34d399;">$0.00 / ${{ "{:,.2f}".format(item.contrato.monto) }}</span>
+                                    {% elif item.esta_vencido %}
+                                        <span style="color: #f87171; font-weight: 700;">+${{ "{:,.2f}".format(item.monto_recargo) }}</span>
+                                        <div style="font-size: 0.8rem; color: #fff;">Total: ${{ "{:,.2f}".format(item.monto_total) }}</div>
+                                    {% else %}
+                                        <span style="color: var(--text-muted);">${{ "{:,.2f}".format(item.contrato.monto) }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.fecha_ultimo_aviso_mora %}
+                                        <span style="font-size: 0.82rem; color: #a5b4fc;">
+                                            <i class="bi bi-send-check"></i> {{ item.fecha_ultimo_aviso_mora.strftime('%d/%m/%Y') }}
+                                        </span>
+                                    {% else %}
+                                        <span style="font-size: 0.82rem; color: var(--text-muted);">Nunca</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.esta_vencido and es_admin %}
+                                        <form action="{{ url_for('views.finanzas_enviar_alerta_mora_individual', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Seguro que querés enviar la alerta de demora por correo electrónico a este inquilino?');">
+                                            <input type="hidden" name="mes" value="{{ item.mes }}">
+                                            <button type="submit" class="btn btn-warning btn-sm" style="background: #f59e0b; color: #000; font-weight: 700; border: none; padding: 0.35rem 0.65rem;" title="Enviar correo de notificación de demora a {{ item.cliente.email if item.cliente else 'inquilino' }}">
+                                                <i class="bi bi-send-fill"></i> Mandar Mail
                                             </button>
                                         </form>
+                                    {% elif item.esta_pagado %}
+                                        <span style="font-size: 0.8rem; color: #34d399;"><i class="bi bi-shield-check"></i> Al Día</span>
                                     {% else %}
-                                        <span style="color: var(--text-secondary); font-size: 0.75rem;">Requiere Admin</span>
+                                        <span style="font-size: 0.8rem; color: var(--text-muted);">No Vencido</span>
                                     {% endif %}
-                                {% else %}
-                                    <span style="color: var(--text-secondary); font-size: 0.8rem;"><i class="bi bi-check-all text-success"></i> Transferido</span>
-                                {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                                No hay contratos de alquiler activos registrados actualmente.
                             </td>
                         </tr>
-                    {% endfor %}
-                {% endif %}
-            </tbody>
-        </table>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Tab 2: Historial de Cobros Completo -->
+<div id="tab-historial-cobros" class="tab-content">
+    <!-- Panel de Filtros Tab 2 -->
+    <div class="filter-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+        <div class="filter-panel-header" style="margin-bottom: 1rem;">
+            <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.45rem; margin: 0;">
+                <i class="bi bi-funnel-fill" style="color: #818cf8;"></i> Filtros Rápidos: Historial de Cobros
+            </h3>
+        </div>
+        <div class="filter-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="form-group">
+                <label for="t2-periodo-filter"><i class="bi bi-calendar3"></i> Período</label>
+                <select id="t2-periodo-filter" class="period-select" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                    <option value="">Todos los períodos...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="t2-propiedad-filter"><i class="bi bi-house-door"></i> Propiedad</label>
+                <select id="t2-propiedad-filter" class="select2" style="width: 100%;">
+                    <option value="">Todas las propiedades</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" style="margin-bottom: 1.5rem; font-size: 0.84rem; display: flex; align-items: flex-start; gap: 0.6rem; background: rgba(56, 189, 248, 0.05); border-color: rgba(56, 189, 248, 0.25);">
+        <i class="bi bi-info-circle-fill" style="color: #38bdf8; font-size: 1.15rem; margin-top: 0.1rem;"></i>
+        <div>
+            <strong>Archivo Histórico:</strong> Registro cronológico de todos los cobros formalizados. Desde esta sección podés acceder a las boletas de pago impresas o auditar los comprobantes de depósito bancario cargados en el sistema.
+        </div>
+    </div>
+
+    <!-- Tabla 1: Historial de Cobros a Inquilinos con Mora y Comprobante -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="display: flex; align-items: center; gap: 0.45rem; font-size: 1.15rem;">
+                                <i class="bi bi-journal-check" style="color: #34d399;"></i> Historial de Cobros y Seguimiento de Demora
+                            </h2>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">Vencimiento estándar: día 10 del mes</span>
+        </div>
+        <div class="table-container">
+            <table id="tabla-pagos" class="display compact" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>FECHA PAGO</th>
+                        <th>N° CONTRATO</th>
+                        <th>INQUILINO</th>
+                        <th>PERÍODO</th>
+                        <th>MONTO BASE</th>
+                        <th>ESTADO DEMORA</th>
+                        <th>TOTAL COBRADO</th>
+                        <th>COMPROBANTE</th>
+                        <th>ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if pagos_inquilinos %}
+                        {% for item in pagos_inquilinos %}
+                            <tr>
+                                <td><strong>#{{ item.pago.id }}</strong></td>
+                                <td>{{ item.pago.fecha_pago.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <div>Contrato #{{ item.pago.nro_contrato }}</div>
+                                    {% if item.propiedad %}
+                                        <small style="color: var(--text-muted); display: block; font-size: 0.76rem;">{{ item.propiedad.direccion }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.cliente.nombre_completo if item.cliente else 'N/A' }}</td>
+                                <td><strong>{{ item.pago.mes_correspondiente }}</strong></td>
+                                <td>${{ "{:,.2f}".format(item.pago.monto) }}</td>
+                                <td>
+                                    {% if item.pago.dias_retraso > 0 %}
+                                        <span class="badge badge-pendiente" title="Pagó después del vencimiento" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid #f59e0b;">
+                                            +{{ item.pago.dias_retraso }} días (Demora: ${{ "{:,.2f}".format(item.pago.monto_recargo) }})
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-activo" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #10b981;">A Término</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong style="color: #34d399;">${{ "{:,.2f}".format(item.pago.monto_total_abonado or item.pago.monto) }}</strong></td>
+                                <td>
+                                    {% if item.pago.ruta_comprobante %}
+                                        <a href="/{{ item.pago.ruta_comprobante }}" target="_blank" class="btn btn-sm btn-secondary" style="padding: 0.2rem 0.55rem; font-size: 0.78rem;" title="Ver comprobante adjunto">
+                                            <i class="bi bi-file-earmark-arrow-down"></i> Ver Adjunto
+                                        </a>
+                                    {% else %}
+                                        <span style="color: var(--text-muted); font-size: 0.78rem;">Sin adjunto</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('views.boleta_alquiler', nro_contrato=item.pago.nro_contrato, mes=item.pago.mes_correspondiente) }}" target="_blank" class="btn btn-sm btn-primary" style="padding: 0.2rem 0.55rem; font-size: 0.78rem;" title="Generar / Ver Boleta PDF">
+                                        <i class="bi bi-file-earmark-pdf"></i> Boleta
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Tab 3: Liquidaciones a Propietarios -->
+<div id="tab-liquidaciones" class="tab-content">
+    <!-- Panel de Filtros Tab 3 -->
+    <div class="filter-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+        <div class="filter-panel-header" style="margin-bottom: 1rem;">
+            <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.45rem; margin: 0;">
+                <i class="bi bi-funnel-fill" style="color: #818cf8;"></i> Filtros Rápidos: Liquidaciones a Propietarios
+            </h3>
+        </div>
+        <div class="filter-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="form-group">
+                <label for="t3-propietario-filter"><i class="bi bi-person-circle"></i> Propietario</label>
+                <select id="t3-propietario-filter" class="select2" style="width: 100%;">
+                    <option value="">Todos los propietarios</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="t3-estado-filter"><i class="bi bi-check-circle"></i> Estado Pago</label>
+                <select id="t3-estado-filter" class="form-control" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                    <option value="">Todos los estados</option>
+                    <option value="Transferido">Transferido</option>
+                    <option value="Pendiente">Pendiente</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="t3-periodo-filter"><i class="bi bi-calendar3"></i> Período</label>
+                <select id="t3-periodo-filter" class="period-select" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                    <option value="">Todos los períodos...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" style="margin-bottom: 1.5rem; font-size: 0.84rem; display: flex; align-items: flex-start; gap: 0.6rem; background: rgba(56, 189, 248, 0.05); border-color: rgba(56, 189, 248, 0.25);">
+        <i class="bi bi-info-circle-fill" style="color: #38bdf8; font-size: 1.15rem; margin-top: 0.1rem;"></i>
+        <div>
+            <strong>Flujo de Liquidación:</strong> Las liquidaciones se calculan automáticamente tras cobrar el alquiler. La fórmula aplicada es: <code>Monto Neto = (Monto Alquiler Base + Demora Recargos) - Comisión Retenida (%)</code>. Las transferencias deben ser verificadas y confirmadas por el administrador.
+        </div>
+    </div>
+
+    <!-- Tabla 2: Liquidaciones a Propietarios -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="display: flex; align-items: center; gap: 0.45rem; font-size: 1.15rem;">
+                <i class="bi bi-receipt" style="color: #818cf8;"></i> Liquidaciones y Transferencias a Propietarios
+            </h2>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">Fórmula: Neto = Cobrado - Comisión Inmobiliaria</span>
+        </div>
+        <div class="table-container">
+            <table id="tabla-liquidaciones" class="display compact" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>PERÍODO</th>
+                        <th>N° CONTRATO</th>
+                        <th>PROPIETARIO</th>
+                        <th>MONTO BRUTO</th>
+                        <th>COMISIÓN</th>
+                        <th>MONTO NETO</th>
+                        <th>ESTADO</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if liquidaciones %}
+                        {% for item in liquidaciones %}
+                            <tr>
+                                <td><strong>{{ item.liq.mes_correspondiente }}</strong></td>
+                                <td>#{{ item.liq.nro_contrato }}</td>
+                                <td>{{ item.propietario.nombre_completo if item.propietario else 'N/A' }}</td>
+                                <td>${{ "{:,.2f}".format(item.liq.monto_bruto) }}</td>
+                                <td>
+                                    ${{ "{:,.2f}".format(item.liq.comision) }}
+                                    <small style="color: var(--text-secondary); display: block; font-size: 0.7rem;">({{ item.contrato.comision_porcentaje if item.contrato else 10 }}%)</small>
+                                </td>
+                                <td><strong style="color: #34d399;">${{ "{:,.2f}".format(item.liq.monto_neto) }}</strong></td>
+                                <td>
+                                    {% if item.liq.estado == 'pagado' %}
+                                        <span class="badge badge-activo" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #10b981;">Transferido</span>
+                                        <small style="color: var(--text-secondary); display: block; font-size: 0.68rem;">{{ item.liq.fecha_pago.strftime('%d/%m/%Y') if item.liq.fecha_pago }}</small>
+                                    {% else %}
+                                        <span class="badge badge-pendiente" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid #ef4444;">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.liq.estado == 'pendiente' %}
+                                        {% if es_admin %}
+                                            <form action="{{ url_for('views.liquidacion_pagar', id_pago=item.liq.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Confirmar el pago y transferencia bancaria de la liquidación a este propietario?');">
+                                                <button type="submit" class="btn btn-sm btn-primary" style="padding: 0.2rem 0.55rem; font-size: 0.78rem;">
+                                                    <i class="bi bi-check2-circle"></i> Transferir
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span style="color: var(--text-secondary); font-size: 0.75rem;">Requiere Admin</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span style="color: var(--text-secondary); font-size: 0.8rem;"><i class="bi bi-check-all text-success"></i> Transferido</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -325,7 +511,7 @@
             </h3>
             <button type="button" onclick="closeModal('modal-pago')" style="background: none; border: none; color: var(--text-secondary); font-size: 1.4rem; cursor: pointer;">&times;</button>
         </div>
-        <form action="{{ url_for('views.pago_inquilino_crear') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ url_for('views.pago_inquilino_crear') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('¿Confirmar el registro de este pago de alquiler? Asegurate de haber verificado el comprobante.');">
             <div class="form-group form-group-full">
                 <label for="nro_contrato">Contrato de Alquiler Activo</label>
                 {% if contratos %}
@@ -345,14 +531,14 @@
             </div>
             
             <div class="form-group form-group-full" style="margin-top: 0.8rem;">
-                <label for="mes">Mes Correspondiente (AAAA-MM)</label>
-                <input type="text" id="mes" name="mes" placeholder="Ej. 2026-08" pattern="[0-9]{4}-[0-9]{2}" title="Debe coincidir con el formato AAAA-MM (Ej. 2026-08)" required>
+                <label for="mes">Mes Correspondiente</label>
+                <select id="mes" name="mes" class="period-select" required></select>
             </div>
             
             <div class="form-group form-group-full" style="margin-top: 0.8rem;">
                 <label for="fecha_pago">Fecha Efectiva de Pago</label>
                 <input type="date" id="fecha_pago" name="fecha_pago">
-                <small style="color: var(--text-muted);">Dejar vacío para registrar con fecha de hoy. Si es posterior al día 10, se calculará el recargo por mora.</small>
+                <small style="color: var(--text-muted);">Dejar vacío para registrar con fecha de hoy. Si es posterior al día 10, se calculará el recargo por demora.</small>
             </div>
 
             <div class="form-group form-group-full" style="margin-top: 0.8rem;">
@@ -389,10 +575,10 @@
         <p style="color: var(--text-secondary); font-size: 0.86rem; margin-bottom: 1.2rem;">
             Se calcularán las transferencias pendientes a propietarios para todos los contratos con cobros realizados en el período indicado.
         </p>
-        <form action="{{ url_for('views.liquidar_mes') }}" method="POST">
+        <form action="{{ url_for('views.liquidar_mes') }}" method="POST" onsubmit="return confirm('¿Confirmar la ejecución de las liquidaciones de propietarios para el período especificado? Esta acción procesará todos los contratos del mes.');">
             <div class="form-group form-group-full">
-                <label for="mes_liquidar">Mes a Liquidar (AAAA-MM)</label>
-                <input type="text" id="mes_liquidar" name="mes" placeholder="Ej. 2026-08" pattern="[0-9]{4}-[0-9]{2}" title="Debe coincidir con el formato AAAA-MM (Ej. 2026-08)" required>
+                <label for="mes_liquidar">Mes a Liquidar</label>
+                <select id="mes_liquidar" name="mes" class="period-select" required></select>
             </div>
             
             <div style="display: flex; gap: 0.8rem; margin-top: 1.6rem; justify-content: flex-end;">
@@ -410,18 +596,20 @@
     <div class="modal-card" style="max-width: 500px;">
         <div class="modal-header">
             <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-                <i class="bi bi-envelope-exclamation-fill" style="color: #f59e0b;"></i> Disparar Alertas de Mora
+                <i class="bi bi-envelope-exclamation-fill" style="color: #f59e0b;"></i> Disparar Alertas de Demora
             </h3>
             <button type="button" class="close-btn" onclick="closeModal('modal-mora')">&times;</button>
         </div>
-        <form action="{{ url_for('views.finanzas_enviar_alertas_mora') }}" method="POST">
+        <form action="{{ url_for('views.finanzas_enviar_alertas_mora') }}" method="POST" onsubmit="return confirm('¿Seguro que querés disparar los avisos automáticos de demora por correo electrónico a todos los inquilinos con pagos retrasados?');">
             <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1.2rem;">
                 El sistema evaluará todos los contratos de alquiler activos que no registren pago posterior al <strong>1° vencimiento (día 10)</strong> y enviará un correo con el desglose de días de atraso, recargos calculados y datos de cuenta para transferencia.
             </p>
             <div class="form-group" style="margin-bottom: 1.2rem;">
-                <label for="mes_mora"><i class="bi bi-calendar3"></i> Período a Evaluar (Opcional - por defecto mes en curso)</label>
-                <input type="text" id="mes_mora" name="mes" placeholder="Ej. 2026-08 (dejar vacío para automático)" pattern="([0-9]{4}-[0-9]{2})?">
-                <small style="color: var(--text-muted);">Formato AAAA-MM. Cuenta con protección anti-spam (no reenvía a quienes ya fueron notificados hoy).</small>
+                <label for="mes_mora"><i class="bi bi-calendar3"></i> Período a Evaluar</label>
+                <select id="mes_mora" name="mes" class="period-select">
+                    <option value="">Selección automática (mes en curso)...</option>
+                </select>
+                <small style="color: var(--text-muted);">Cuenta con protección anti-spam (no reenvía a quienes ya fueron notificados hoy).</small>
             </div>
             <div style="display: flex; gap: 0.8rem; justify-content: flex-end;">
                 <button type="button" onclick="closeModal('modal-mora')" class="btn btn-secondary">Cancelar</button>
@@ -438,7 +626,6 @@
 
 {% block scripts %}
 <!-- jQuery & DataTables JS CDN Integration -->
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
 $(document).ready(function() {
@@ -472,18 +659,99 @@ $(document).ready(function() {
         "responsive": true
     });
 
-    // Dynamic Filter Connections
-    $('#custom-search-input').on('keyup', function() {
-        dtLiquidaciones.search(this.value).draw();
-        dtPagos.search(this.value).draw();
-        dtEstadoMora.search(this.value).draw();
+    // Dynamic Populators for Select2 from tables
+    var t1Propiedades = new Set();
+    var t2Propiedades = new Set();
+    var t3Propietarios = new Set();
+
+    dtEstadoMora.rows().every(function() {
+        var cellProp = $(this.node()).find('td').eq(1).text().trim();
+        if (cellProp && cellProp !== "N/A") {
+            t1Propiedades.add(cellProp);
+        }
     });
 
-    $('#period-filter-input').on('keyup', function() {
-        dtLiquidaciones.column(0).search(this.value).draw();
+    dtPagos.rows().every(function() {
+        var cellProp = $(this.node()).find('td').eq(2).find('small').text().trim();
+        if (cellProp) {
+            t2Propiedades.add(cellProp);
+        }
+    });
+
+    dtLiquidaciones.rows().every(function() {
+        var cellOwner = $(this.node()).find('td').eq(2).text().trim();
+        if (cellOwner && cellOwner !== "N/A") {
+            t3Propietarios.add(cellOwner);
+        }
+    });
+
+    // Populate Select elements
+    var t1PropSelect = $('#t1-propiedad-filter');
+    Array.from(t1Propiedades).sort().forEach(function(p) {
+        t1PropSelect.append(new Option(p, p));
+    });
+
+    var t2PropSelect = $('#t2-propiedad-filter');
+    Array.from(t2Propiedades).sort().forEach(function(p) {
+        t2PropSelect.append(new Option(p, p));
+    });
+
+    var t3ProprioSelect = $('#t3-propietario-filter');
+    Array.from(t3Propietarios).sort().forEach(function(p) {
+        t3ProprioSelect.append(new Option(p, p));
+    });
+
+    // Initialize Select2 on searchable dropdowns
+    $('#t1-propiedad-filter').select2();
+    $('#t2-propiedad-filter').select2();
+    $('#t3-propietario-filter').select2();
+
+    // Bind event handlers
+    $('#t1-propiedad-filter').on('change', function() {
+        dtEstadoMora.column(1).search(this.value).draw();
+    });
+    $('#t1-estado-filter').on('change', function() {
+        dtEstadoMora.column(4).search(this.value).draw();
+    });
+
+    $('#t2-periodo-filter').on('change', function() {
         dtPagos.column(4).search(this.value).draw();
     });
+    $('#t2-propiedad-filter').on('change', function() {
+        dtPagos.column(2).search(this.value).draw();
+    });
+
+    $('#t3-propietario-filter').on('change', function() {
+        dtLiquidaciones.column(2).search(this.value).draw();
+    });
+    $('#t3-estado-filter').on('change', function() {
+        dtLiquidaciones.column(6).search(this.value).draw();
+    });
+    $('#t3-periodo-filter').on('change', function() {
+        dtLiquidaciones.column(0).search(this.value).draw();
+    });
+
+    // Populate selects dynamically
+    populatePeriodSelects();
 });
+
+function switchTab(evt, tabId) {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // Deactivate all tab buttons
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab & activate button
+    document.getElementById(tabId).classList.add('active');
+    evt.currentTarget.classList.add('active');
+}
 
 function openModal(id) {
     var modal = document.getElementById(id);
@@ -501,6 +769,50 @@ function updateMontoSugerido(selectElement) {
     if (monto) {
         document.getElementById('monto_pago').value = monto;
     }
+}
+
+function populatePeriodSelects() {
+    const selects = document.querySelectorAll('.period-select');
+    if (selects.length === 0) return;
+
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-indexed
+
+    const options = [];
+    const monthNames = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+
+    // Generate options from 6 months ago to 2 months into the future
+    for (let i = -6; i <= 2; i++) {
+        const d = new Date(currentYear, currentMonth + i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const periodStr = `${yyyy}-${mm}`;
+        const label = `${monthNames[d.getMonth()]} ${yyyy}`;
+        options.push({ value: periodStr, label: label, isCurrent: i === 0 });
+    }
+
+    selects.forEach(select => {
+        // Keep placeholder option if present
+        const placeholderOpt = select.querySelector('option[value=""]');
+        select.innerHTML = '';
+        if (placeholderOpt) {
+            select.appendChild(placeholderOpt);
+        }
+
+        options.forEach(opt => {
+            const el = document.createElement('option');
+            el.value = opt.value;
+            el.textContent = `${opt.label} (${opt.value})`;
+            if (opt.isCurrent && !placeholderOpt) {
+                el.selected = true;
+            }
+            select.appendChild(el);
+        });
+    });
 }
 </script>
 {% endblock %}

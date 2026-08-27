@@ -259,3 +259,160 @@ def test_rutas_web_nuevas_funcionalidades():
     resp_visitas = client.get(f"/propiedades/{propiedad.id}/visitas")
     assert resp_visitas.status_code == 200
     assert b"Agenda de Visitas" in resp_visitas.data
+
+
+def test_audit_logs_flow():
+    """
+    Test logs are recorded on events like signing contract, registering payment, etc.
+    """
+    admin = controller.registrar_agente(
+        "Admin", "User", "adminlog@inmogestion.com", "pass",
+        "20-99999991-9", "MAT-LOG1", "DNI", "99999991", "Rosario", "341", "Administrador"
+    )
+    std = controller.registrar_agente(
+        "Std", "User", "stdlog@inmogestion.com", "pass",
+        "20-99999992-9", "MAT-LOG2", "DNI", "99999992", "Rosario", "341", "Estándar"
+    )
+    prop = controller.registrar_propietario("O", "O", "o@gmail.com", "DNI", "99999993", "R", "341")
+    cliente = controller.registrar_cliente("C", "C", "c@gmail.com", "DNI", "99999994", "R", "341")
+    propiedad = controller.registrar_propiedad("Direccion 1", "Alquiler", "Centro", prop.id)
+    
+    controller.asignar_agente_a_propiedad(admin.id, propiedad.id, datetime.now())
+    contrato = controller.solicitar_contrato(cliente.id, admin.id, propiedad.id, monto=50000.0)
+    
+    # Sign contract with admin agent
+    controller.firmar_contrato(contrato.nro_contrato, id_agente_solicitante=admin.id)
+    
+    # Register payment
+    controller.registrar_pago_inquilino(
+        contrato.nro_contrato, "2026-08", 50000.0, fecha_pago=date(2026, 8, 5), id_agente_solicitante=admin.id
+    )
+    
+    # Verify logs exist
+    logs = controller.listar_logs_auditoria(admin.id)
+    assert len(logs) >= 2
+    # The latest log should be the payment
+    assert logs[0].entidad == "PagoInquilino"
+    assert logs[0].accion == "RegistrarPago"
+    assert "registró el pago" in logs[0].descripcion
+    
+    # The previous log should be the contract signing
+    assert logs[1].entidad == "Contrato"
+    assert logs[1].accion == "Firmar"
+    assert "firmó el contrato" in logs[1].descripcion
+
+    # Non-admin cannot list audit logs
+    with pytest.raises(PermissionError):
+        controller.listar_logs_auditoria(std.id)
+
+
+def test_cancelar_inscripcion_visita_flow():
+    """
+    Test visitor registration cancellation releases slots back to "disponible" when full.
+    """
+    agente = controller.registrar_agente(
+        "A", "A", "a@inmogestion.com", "pass", "20-91", "MAT-A1", "DNI", "91", "R", "341", "Estándar"
+    )
+    prop = controller.registrar_propietario("O", "O", "o@gmail.com", "DNI", "92", "R", "341")
+    propiedad = controller.registrar_propiedad("Dir", "Venta", "Sur", prop.id)
+    
+    agenda = controller.crear_agenda_visita(
+        id_propiedad=propiedad.id,
+        id_agente=agente.id,
+        fecha_hora_visita=datetime.now() + timedelta(days=2),
+        duracion_minutos=30,
+        cupo_maximo=1
+    )
+    
+    # Register visitor to fill cupo
+    insc = controller.inscribir_visitante_a_turno(
+        id_agenda=agenda.id,
+        nombre_visitante="V1",
+        telefono_visitante="12345",
+        email_visitante="v1@test.com"
+    )
+    
+    agenda_full = controller.obtener_agenda_con_inscriptos(agenda.id)
+    assert agenda_full["agenda"].estado == "completo"
+    assert agenda_full["total_inscriptos"] == 1
+    
+    # Cancel inscription
+    success = controller.cancelar_inscripcion_visita(insc.id, id_agente_solicitante=agente.id)
+    assert success is True
+    
+    # Agenda should return to "disponible" status
+    agenda_after = controller.obtener_agenda_con_inscriptos(agenda.id)
+    assert agenda_after["agenda"].estado == "disponible"
+    assert agenda_after["total_inscriptos"] == 0
+    assert agenda_after["cupo_disponible"] == 1
+
+
+def test_obtener_contratos_por_vencer_flow():
+    """
+    Test retrieving contracts expiring in the next 90 days.
+    """
+    agente = controller.registrar_agente(
+        "A", "A", "a2@inmogestion.com", "pass", "20-911", "MAT-A11", "DNI", "911", "R", "341", "Estándar"
+    )
+    prop = controller.registrar_propietario("O", "O", "o2@gmail.com", "DNI", "922", "R", "341")
+    cliente = controller.registrar_cliente("C", "C", "c2@gmail.com", "DNI", "933", "R", "341")
+    propiedad = controller.registrar_propiedad("Dir", "Alquiler", "Centro", prop.id)
+    controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime.now())
+    
+    c = controller.solicitar_contrato(cliente.id, agente.id, propiedad.id, monto=100000.0)
+    
+    # Lease starts 700 days ago (meaning it will expire in 30 days since total duration is 730 days)
+    start_date = date.today() - timedelta(days=700)
+    controller.firmar_contrato(c.nro_contrato, fecha_contrato=start_date)
+    
+    por_vencer = controller.obtener_contratos_por_vencer(90)
+    assert len(por_vencer) == 1
+    assert por_vencer[0]["contrato"].nro_contrato == c.nro_contrato
+    assert por_vencer[0]["dias_restantes"] == 30
+
+
+def test_no_visita_cuando_no_disponible():
+    """
+    Test that visits cannot be created or registered for rented/sold properties.
+    """
+    agente = controller.registrar_agente(
+        "A", "A", "a3@inmogestion.com", "pass", "20-9111", "MAT-A111", "DNI", "9111", "R", "341", "Estándar"
+    )
+    prop = controller.registrar_propietario("O", "O", "o3@gmail.com", "DNI", "9222", "R", "341")
+    cliente = controller.registrar_cliente("C", "C", "c3@gmail.com", "DNI", "9333", "R", "341")
+    propiedad = controller.registrar_propiedad("Dir", "Alquiler", "Centro", prop.id)
+    controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime.now())
+    
+    # Case 1: Property is alquilada, try to create visit slot (should fail)
+    propiedad.estado = "alquilada"
+    db.save_propiedad(propiedad)
+    
+    with pytest.raises(ValueError, match="Solo se pueden coordinar visitas"):
+        controller.crear_agenda_visita(
+            id_propiedad=propiedad.id,
+            id_agente=agente.id,
+            fecha_hora_visita=datetime.now() + timedelta(days=1)
+        )
+        
+    # Case 2: Create agenda while available, then rent property and try to register visitor (should fail)
+    propiedad.estado = "disponible"
+    db.save_propiedad(propiedad)
+    
+    agenda = controller.crear_agenda_visita(
+        id_propiedad=propiedad.id,
+        id_agente=agente.id,
+        fecha_hora_visita=datetime.now() + timedelta(days=1)
+    )
+    
+    # Rent property
+    propiedad.estado = "alquilada"
+    db.save_propiedad(propiedad)
+    
+    with pytest.raises(ValueError, match="No se pueden inscribir visitantes"):
+        controller.inscribir_visitante_a_turno(
+            id_agenda=agenda.id,
+            nombre_visitante="Visitante Test",
+            telefono_visitante="12345"
+        )
+
+

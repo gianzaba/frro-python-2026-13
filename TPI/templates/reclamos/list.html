@@ -2,6 +2,11 @@
 
 {% block title %}Reclamos & Mantenimiento Estructural{% endblock %}
 
+{% block head %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
@@ -81,8 +86,32 @@
     </div>
 </div>
 
-<!-- Tabla de Reclamos -->
-<div class="card">
+    <!-- Panel de Filtros Dinámicos -->
+    <div class="filter-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+        <div class="filter-panel-header" style="margin-bottom: 1rem;">
+            <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.45rem; margin: 0;">
+                <i class="bi bi-funnel-fill" style="color: #f59e0b;"></i> Filtros Avanzados de Reclamos e Incidencias
+            </h3>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">Filtrado interactivo en tiempo real</span>
+        </div>
+        <div class="filter-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="form-group">
+                <label for="propiedad-filter"><i class="bi bi-house-door"></i> Propiedad</label>
+                <select id="propiedad-filter" class="select2" style="width: 100%;">
+                    <option value="">Todas las propiedades</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="urgencia-filter"><i class="bi bi-exclamation-triangle"></i> Urgencia</label>
+                <select id="urgencia-filter" class="form-control" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                    <option value="">Todas las urgencias</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Reclamos -->
+    <div class="card">
     <div class="table-container">
         <table class="data-table">
             <thead>
@@ -192,7 +221,7 @@
             <button type="button" onclick="closeEstadoModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer;">&times;</button>
         </div>
         
-        <form id="formActualizarEstado" method="POST">
+        <form id="formActualizarEstado" method="POST" onsubmit="return confirm('¿Confirmar la actualización del estado y presupuesto del reclamo?');">
             <input type="hidden" name="origen" value="reclamos">
             <div class="form-group" style="margin-bottom: 1rem;">
                 <label for="modalNuevoEstado"><i class="bi bi-flag"></i> Estado Actual</label>
@@ -223,6 +252,7 @@
     </div>
 </div>
 
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
     function openEstadoModal(id, estado, presupuesto, obs) {
         document.getElementById('modalReclamoId').innerText = '#' + id;
@@ -236,5 +266,61 @@
     function closeEstadoModal() {
         document.getElementById('estadoModal').style.display = 'none';
     }
+
+    $(document).ready(function() {
+        var table = $('.data-table').DataTable({
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+            },
+            "pageLength": 10,
+            "ordering": true,
+            "autoWidth": false,
+            "responsive": true
+        });
+
+        // Populate unique properties and urgencias
+        var propiedades = new Set();
+        var urgencias = new Set();
+
+        table.rows().every(function() {
+            var cellProp = $(this.node()).find('td').eq(2).find('strong').text().trim();
+            if (!cellProp) {
+                cellProp = $(this.node()).find('td').eq(2).text().trim();
+            }
+            if (cellProp) {
+                cellProp = cellProp.split('\n')[0].trim();
+                propiedades.add(cellProp);
+            }
+
+            var cellUrgencia = $(this.node()).find('td').eq(5).text().trim();
+            if (cellUrgencia) {
+                urgencias.add(cellUrgencia);
+            }
+        });
+
+        // Populate Property Select
+        var propSelect = $('#propiedad-filter');
+        Array.from(propiedades).sort().forEach(function(p) {
+            propSelect.append(new Option(p, p));
+        });
+
+        // Populate Urgencia Select
+        var urgSelect = $('#urgencia-filter');
+        Array.from(urgencias).sort().forEach(function(u) {
+            urgSelect.append(new Option(u, u));
+        });
+
+        // Initialize Select2 on property
+        $('#propiedad-filter').select2();
+
+        // Bind filters
+        $('#propiedad-filter').on('change', function() {
+            table.column(2).search(this.value).draw();
+        });
+
+        $('#urgencia-filter').on('change', function() {
+            table.column(5).search(this.value).draw();
+        });
+    });
 </script>
 {% endblock %}

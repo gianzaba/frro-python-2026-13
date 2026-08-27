@@ -18,7 +18,7 @@
         <i class="bi bi-sliders" style="color: #818cf8;"></i> Parámetros de Comercialización
     </h2>
     
-    <form action="{{ url_for('views.propiedad_asignar', id_propiedad=p.id) }}" method="POST">
+    <form action="{{ url_for('views.propiedad_asignar', id_propiedad=p.id) }}" method="POST" onsubmit="return confirm('¿Confirmar la asignación del agente comercial seleccionado a esta propiedad?');">
         <div class="form-grid" style="grid-template-columns: 1fr;">
             <div class="form-group">
                 <label for="id_agente"><i class="bi bi-person-fill"></i> Seleccionar Agente Comercial</label>
