@@ -98,6 +98,7 @@ def registrar_cliente(
     nro_doc: str,
     domicilio: str,
     telefono: str,
+    id_agente_creador: Optional[int] = None,
 ) -> ClienteBO:
     """
     Registra un nuevo cliente interesado en contratos.
@@ -118,6 +119,7 @@ def registrar_cliente(
         telefono=telefono,
         email=email,
         contrasegna_hash="",
+        id_agente_creador=id_agente_creador,
     )
     return db.save_cliente(bo)
 
@@ -130,6 +132,7 @@ def registrar_propietario(
     nro_doc: str,
     domicilio: str,
     telefono: str,
+    id_agente_creador: Optional[int] = None,
 ) -> PropietarioBO:
     """
     Registra un nuevo propietario de inmuebles.
@@ -150,6 +153,7 @@ def registrar_propietario(
         telefono=telefono,
         email=email,
         contrasegna_hash="",
+        id_agente_creador=id_agente_creador,
     )
     return db.save_propietario(bo)
 
@@ -230,6 +234,10 @@ def solicitar_contrato(
     comision_agente_porcentaje: float = 3.0,
     tipo_contrato: str = "Alquiler",
     ruta_documento_respaldo: Optional[str] = None,
+    recibos_sueldo_detalle: str = "",
+    garantias_detalle: str = "",
+    ruta_recibos_sueldo: Optional[str] = None,
+    ruta_garantias: Optional[str] = None,
 ) -> ContratoBO:
     """
     Solicita un nuevo contrato.
@@ -260,10 +268,16 @@ def solicitar_contrato(
             f"El agente {agente.nombre_completo} no está asignado actualmente a esta propiedad."
         )
 
+    tiene_documentacion = bool(
+        recibos_sueldo_detalle.strip()
+        or garantias_detalle.strip()
+        or ruta_recibos_sueldo
+        or ruta_garantias
+    )
     bo = ContratoBO(
         nro_contrato=None,
         fecha_solicitud=date.today(),
-        estado="solicitado",
+        estado="pendiente_aprobacion" if tiene_documentacion else "solicitado",
         fecha_contrato=None,
         id_cliente=id_cliente,
         id_agente=id_agente,
@@ -273,10 +287,31 @@ def solicitar_contrato(
         comision_agente_porcentaje=comision_agente_porcentaje,
         tipo_contrato=tipo_contrato,
         ruta_documento_respaldo=ruta_documento_respaldo,
+        recibos_sueldo_detalle=recibos_sueldo_detalle,
+        garantias_detalle=garantias_detalle,
+        ruta_recibos_sueldo=ruta_recibos_sueldo,
+        ruta_garantias=ruta_garantias,
     )
     saved_contrato = db.save_contrato(bo)
     cargar_clausulas_predeterminadas(saved_contrato.nro_contrato, tipo_contrato)
     return saved_contrato
+
+
+def decidir_contrato_propietario(
+    nro_contrato: int, aprobada: bool, observaciones: str = ""
+) -> ContratoBO:
+    """Registra la decisión del propietario sobre una oferta comunicada por el agente."""
+    contrato = db.get_contrato_by_id(nro_contrato)
+    if not contrato:
+        raise ValueError("El contrato especificado no existe.")
+    if contrato.estado not in ("pendiente_aprobacion", "solicitado"):
+        raise ValueError("Solo se puede decidir sobre ofertas pendientes.")
+
+    contrato.decision_propietario = "aprobada" if aprobada else "rechazada"
+    contrato.fecha_decision_propietario = date.today()
+    contrato.observaciones_propietario = observaciones.strip()
+    contrato.estado = "aprobado" if aprobada else "rechazado"
+    return db.save_contrato(contrato)
 
 
 def firmar_contrato(
@@ -293,10 +328,12 @@ def firmar_contrato(
     if not contrato:
         raise ValueError("El contrato especificado no existe.")
 
-    if contrato.estado != "solicitado":
-        raise ValueError(
-            "Solo se pueden firmar contratos en estado 'solicitado'."
-        )
+    if contrato.estado == "pendiente_aprobacion":
+        raise ValueError("La oferta aún debe ser aprobada por el propietario.")
+    if contrato.estado == "rechazado":
+        raise ValueError("El propietario rechazó esta oferta.")
+    if contrato.estado not in ("solicitado", "aprobado"):
+        raise ValueError("Solo se pueden firmar ofertas aprobadas.")
 
     propiedad = db.get_propiedad_by_id(contrato.id_propiedad)
     if not propiedad:
@@ -443,9 +480,9 @@ def agregar_clausula_contrato(
     contrato = db.get_contrato_by_id(nro_contrato)
     if not contrato:
         raise ValueError("El contrato especificado no existe.")
-    if contrato.estado != "solicitado":
+    if contrato.estado not in ("solicitado", "aprobado"):
         raise ValueError(
-            "El contrato ya ha sido firmado. No se pueden modificar ni agregar cláusulas en un contrato firmado."
+            "El contrato ya ha sido firmado o rechazado. No se pueden modificar ni agregar cláusulas."
         )
 
     if orden is None:
@@ -624,15 +661,36 @@ def obtener_contrato(nro_contrato: int) -> Optional[ContratoBO]:
     return db.get_contrato_by_id(nro_contrato)
 
 
-def listar_propiedades() -> List[PropiedadBO]:
+def listar_propiedades(id_agente: Optional[int] = None) -> List[PropiedadBO]:
+    """
+    Lista propiedades. Si id_agente está especificado y no es administrador, 
+    solo retorna las propiedades asignadas activamente a ese agente.
+    Si id_agente es administrador o None, retorna todas las propiedades.
+    """
+    if id_agente and not es_administrador(id_agente):
+        return db.list_propiedades_by_agente(id_agente)
     return db.list_propiedades()
 
 
-def listar_clientes() -> List[ClienteBO]:
+def listar_clientes(id_agente: Optional[int] = None) -> List[ClienteBO]:
+    """
+    Lista clientes. Si id_agente está especificado y no es administrador, 
+    solo retorna los clientes que ese agente creó.
+    Si id_agente es administrador o None, retorna todos los clientes.
+    """
+    if id_agente and not es_administrador(id_agente):
+        return db.list_clientes_by_agente(id_agente)
     return db.list_clientes()
 
 
-def listar_propietarios() -> List[PropietarioBO]:
+def listar_propietarios(id_agente: Optional[int] = None) -> List[PropietarioBO]:
+    """
+    Lista propietarios. Si id_agente está especificado y no es administrador, 
+    solo retorna los propietarios que ese agente creó.
+    Si id_agente es administrador o None, retorna todos los propietarios.
+    """
+    if id_agente and not es_administrador(id_agente):
+        return db.list_propietarios_by_agente(id_agente)
     return db.list_propietarios()
 
 
@@ -640,8 +698,42 @@ def listar_agentes() -> List[AgenteBO]:
     return db.list_agentes()
 
 
-def listar_contratos() -> List[ContratoBO]:
-    return db.list_contratos()
+def puede_acceder_propiedad(id_agente: Optional[int], id_propiedad: int) -> bool:
+    """
+    Verifica si un agente puede acceder a una propiedad específica.
+    Admin siempre puede acceder. Agente estándar solo si está actualmente asignado.
+    """
+    if not id_agente:
+        return False
+    
+    # Admin puede acceder a todo
+    if es_administrador(id_agente):
+        return True
+    
+    # Agente estándar solo puede acceder si está activamente asignado
+    assignment = db.get_active_agent_assignment_for_property(id_propiedad)
+    return assignment is not None and assignment.id_agente == id_agente
+
+
+def puede_acceder_contrato(
+    id_agente: Optional[int], contrato: ContratoBO
+) -> bool:
+    """Verifica que un agente pueda consultar un contrato."""
+    return bool(
+        id_agente
+        and (
+            es_administrador(id_agente)
+            or contrato.id_agente == id_agente
+        )
+    )
+
+
+def listar_contratos(id_agente: Optional[int] = None) -> List[ContratoBO]:
+    """Lista todos los contratos para administradores y los propios para agentes."""
+    contratos = db.list_contratos()
+    if id_agente and not es_administrador(id_agente):
+        contratos = [c for c in contratos if c.id_agente == id_agente]
+    return contratos
 
 
 def obtener_asignacion_activa_propiedad(
@@ -1204,12 +1296,26 @@ def registrar_transferencia_propietario(
     return saved
 
 
-def listar_pagos_inquilinos() -> List[PagoInquilinoBO]:
-    return db.list_pagos_inquilinos()
+def listar_pagos_inquilinos(
+    id_agente: Optional[int] = None,
+) -> List[PagoInquilinoBO]:
+    pagos = db.list_pagos_inquilinos()
+    if id_agente and not es_administrador(id_agente):
+        contrato_ids = {c.nro_contrato for c in listar_contratos(id_agente)}
+        pagos = [p for p in pagos if p.nro_contrato in contrato_ids]
+    return pagos
 
 
-def listar_pagos_propietarios() -> List[PagoPropietarioBO]:
-    return db.list_pagos_propietarios()
+def listar_pagos_propietarios(
+    id_agente: Optional[int] = None,
+) -> List[PagoPropietarioBO]:
+    liquidaciones = db.list_pagos_propietarios()
+    if id_agente and not es_administrador(id_agente):
+        contrato_ids = {c.nro_contrato for c in listar_contratos(id_agente)}
+        liquidaciones = [
+            liq for liq in liquidaciones if liq.nro_contrato in contrato_ids
+        ]
+    return liquidaciones
 
 
 def obtener_pago_inquilino(id_pago: int) -> Optional[PagoInquilinoBO]:
@@ -1275,15 +1381,10 @@ def obtener_estadisticas_financieras(
     """
     Calcula las estadísticas financieras para un período.
     """
-    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
-        raise PermissionError(
-            "Acceso denegado: Se requieren permisos de Administrador para consultar estadísticas financieras."
-        )
-
     if not mes:
         mes = datetime.now().strftime("%Y-%m")
 
-    contratos = db.list_contratos()
+    contratos = listar_contratos(id_agente_solicitante)
 
     if id_cliente:
         contratos = [c for c in contratos if c.id_cliente == id_cliente]
@@ -1317,10 +1418,17 @@ def obtener_estadisticas_financieras(
             )
 
     liquidaciones = db.list_pagos_propietarios()
+    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
+        contrato_ids_agente = {c.nro_contrato for c in contratos}
+        liquidaciones = [
+            liq
+            for liq in liquidaciones
+            if liq.nro_contrato in contrato_ids_agente
+        ]
     if id_cliente:
         client_contract_nros = {
             c.nro_contrato
-            for c in db.list_contratos()
+            for c in contratos
             if c.id_cliente == id_cliente
         }
         liquidaciones = [
@@ -1476,7 +1584,9 @@ def obtener_detalle_reclamo(id_reclamo: int) -> dict:
 
 
 def listar_reclamos_con_detalle(
-    nro_contrato: Optional[int] = None, estado: Optional[str] = None
+    nro_contrato: Optional[int] = None,
+    estado: Optional[str] = None,
+    id_agente: Optional[int] = None,
 ) -> List[dict]:
     """
     Lista todos los reclamos enriquecidos con datos relacionados.
@@ -1485,6 +1595,10 @@ def listar_reclamos_con_detalle(
         reclamos = db.list_reclamos_by_contrato(nro_contrato)
     else:
         reclamos = db.list_reclamos()
+
+    if id_agente and not es_administrador(id_agente):
+        contrato_ids = {c.nro_contrato for c in listar_contratos(id_agente)}
+        reclamos = [r for r in reclamos if r.nro_contrato in contrato_ids]
 
     if estado:
         reclamos = [r for r in reclamos if r.estado.lower() == estado.lower()]
@@ -1663,7 +1777,10 @@ def enviar_alertas_mora_inquilinos(
     }
 
 
-def obtener_estado_cobros_alquileres_mes(mes: Optional[str] = None) -> list:
+def obtener_estado_cobros_alquileres_mes(
+    mes: Optional[str] = None,
+    id_agente: Optional[int] = None,
+) -> list:
     """
     Retorna el estado de cobro de cada contrato de alquiler activo para el período indicado,
     indicando si está pagado, en término o vencido con mora, y si se puede enviar mail.
@@ -1672,7 +1789,7 @@ def obtener_estado_cobros_alquileres_mes(mes: Optional[str] = None) -> list:
     mes_evaluar = mes or hoy.strftime("%Y-%m")
     contratos = [
         c
-        for c in db.list_contratos()
+        for c in listar_contratos(id_agente)
         if c.estado == "activo" and c.tipo_contrato.lower() == "alquiler"
     ]
 
@@ -1932,12 +2049,15 @@ def cancelar_inscripcion_visita(
     return False
 
 
-def obtener_contratos_por_vencer(dias_anticipacion: int = 90) -> List[dict]:
+def obtener_contratos_por_vencer(
+    dias_anticipacion: int = 90,
+    id_agente: Optional[int] = None,
+) -> List[dict]:
     """
     Retorna contratos de alquiler activos que vencerán en los próximos dias_anticipacion días.
     Asume una duración típica de 2 años (730 días) para contratos de alquiler desde la fecha de firma.
     """
-    contratos = db.list_contratos()
+    contratos = listar_contratos(id_agente)
     por_vencer = []
     hoy = date.today()
 

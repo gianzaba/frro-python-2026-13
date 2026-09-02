@@ -85,6 +85,7 @@ class ClienteTable(PersonaTable):
     __tablename__ = "cliente"
 
     id = Column(Integer, ForeignKey("persona.id"), primary_key=True)
+    id_agente_creador = Column(Integer, ForeignKey("agente.id"), nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "cliente",
@@ -95,6 +96,7 @@ class PropietarioTable(PersonaTable):
     __tablename__ = "propietario"
 
     id = Column(Integer, ForeignKey("persona.id"), primary_key=True)
+    id_agente_creador = Column(Integer, ForeignKey("agente.id"), nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "propietario",
@@ -152,6 +154,13 @@ class ContratoTable(Base):
     tipo_contrato = Column(String(50), default="Alquiler", nullable=False)
     ruta_documento_respaldo = Column(String(500), nullable=True)
     fecha_ultimo_aviso_mora = Column(Date, nullable=True)
+    recibos_sueldo_detalle = Column(String(2000), nullable=False, default="")
+    garantias_detalle = Column(String(2000), nullable=False, default="")
+    ruta_recibos_sueldo = Column(String(500), nullable=True)
+    ruta_garantias = Column(String(500), nullable=True)
+    decision_propietario = Column(String(20), nullable=False, default="pendiente")
+    fecha_decision_propietario = Column(Date, nullable=True)
+    observaciones_propietario = Column(String(2000), nullable=False, default="")
 
     cliente = relationship("ClienteTable", foreign_keys=[id_cliente])
     agente = relationship("AgenteTable", foreign_keys=[id_agente])
@@ -362,10 +371,48 @@ def init_db(reset: bool = False):
             if "monto_recargo" not in cols:
                 needs_recreate = True
 
+        if not needs_recreate and "cliente" in existing_tables:
+            cols_cliente = [c["name"] for c in inspector.get_columns("cliente")]
+            if "id_agente_creador" not in cols_cliente:
+                with engine.begin() as conn:
+                    from sqlalchemy import text
+                    conn.execute(text(
+                        "ALTER TABLE cliente ADD COLUMN id_agente_creador INTEGER REFERENCES agente(id)"
+                    ))
+
+        if not needs_recreate and "propietario" in existing_tables:
+            cols_prop = [c["name"] for c in inspector.get_columns("propietario")]
+            if "id_agente_creador" not in cols_prop:
+                with engine.begin() as conn:
+                    from sqlalchemy import text
+                    conn.execute(text(
+                        "ALTER TABLE propietario ADD COLUMN id_agente_creador INTEGER REFERENCES agente(id)"
+                    ))
+
         if not needs_recreate and "contrato" in existing_tables:
             cols_c = [c["name"] for c in inspector.get_columns("contrato")]
-            if "fecha_ultimo_aviso_mora" not in cols_c:
-                needs_recreate = True
+            required_columns = {
+                "fecha_ultimo_aviso_mora": "DATE",
+                "recibos_sueldo_detalle": "VARCHAR(2000) NOT NULL DEFAULT ''",
+                "garantias_detalle": "VARCHAR(2000) NOT NULL DEFAULT ''",
+                "ruta_recibos_sueldo": "VARCHAR(500)",
+                "ruta_garantias": "VARCHAR(500)",
+                "decision_propietario": "VARCHAR(20) NOT NULL DEFAULT 'pendiente'",
+                "fecha_decision_propietario": "DATE",
+                "observaciones_propietario": "VARCHAR(2000) NOT NULL DEFAULT ''",
+            }
+            missing_columns = [
+                (name, definition)
+                for name, definition in required_columns.items()
+                if name not in cols_c
+            ]
+            if missing_columns:
+                with engine.begin() as conn:
+                    from sqlalchemy import text
+                    for name, definition in missing_columns:
+                        conn.execute(text(
+                            f"ALTER TABLE contrato ADD COLUMN {name} {definition}"
+                        ))
 
         if needs_recreate:
             recreate_all()
@@ -399,6 +446,7 @@ def to_bo_cliente(db_obj: Optional[ClienteTable]) -> Optional[ClienteBO]:
         telefono=db_obj.telefono,
         email=db_obj.email,
         contrasegna_hash=db_obj.contrasegna_hash,
+        id_agente_creador=db_obj.id_agente_creador,
     )
 
 
@@ -417,6 +465,7 @@ def to_bo_propietario(
         telefono=db_obj.telefono,
         email=db_obj.email,
         contrasegna_hash=db_obj.contrasegna_hash,
+        id_agente_creador=db_obj.id_agente_creador,
     )
 
 
@@ -470,6 +519,13 @@ def to_bo_contrato(db_obj: Optional[ContratoTable]) -> Optional[ContratoBO]:
         tipo_contrato=getattr(db_obj, "tipo_contrato", "Alquiler") or "Alquiler",
         ruta_documento_respaldo=getattr(db_obj, "ruta_documento_respaldo", None),
         fecha_ultimo_aviso_mora=getattr(db_obj, "fecha_ultimo_aviso_mora", None),
+        recibos_sueldo_detalle=getattr(db_obj, "recibos_sueldo_detalle", "") or "",
+        garantias_detalle=getattr(db_obj, "garantias_detalle", "") or "",
+        ruta_recibos_sueldo=getattr(db_obj, "ruta_recibos_sueldo", None),
+        ruta_garantias=getattr(db_obj, "ruta_garantias", None),
+        decision_propietario=getattr(db_obj, "decision_propietario", "pendiente") or "pendiente",
+        fecha_decision_propietario=getattr(db_obj, "fecha_decision_propietario", None),
+        observaciones_propietario=getattr(db_obj, "observaciones_propietario", "") or "",
     )
 
 
@@ -667,6 +723,7 @@ def save_cliente(bo: ClienteBO) -> ClienteBO:
                 db_obj.telefono = bo.telefono
                 db_obj.email = bo.email
                 db_obj.contrasegna_hash = bo.contrasegna_hash
+                db_obj.id_agente_creador = bo.id_agente_creador
         else:
             db_obj = ClienteTable(
                 tipo_doc=bo.tipo_doc,
@@ -677,6 +734,7 @@ def save_cliente(bo: ClienteBO) -> ClienteBO:
                 telefono=bo.telefono,
                 email=bo.email,
                 contrasegna_hash=bo.contrasegna_hash,
+                id_agente_creador=bo.id_agente_creador,
             )
             db.add(db_obj)
         db.commit()
@@ -690,6 +748,16 @@ def list_clientes() -> List[ClienteBO]:
     db = SessionLocal()
     try:
         objs = db.query(ClienteTable).all()
+        return [to_bo_cliente(o) for o in objs]
+    finally:
+        db.close()
+
+
+def list_clientes_by_agente(id_agente: int) -> List[ClienteBO]:
+    """Lista clientes creados por un agente específico."""
+    db = SessionLocal()
+    try:
+        objs = db.query(ClienteTable).filter(ClienteTable.id_agente_creador == id_agente).all()
         return [to_bo_cliente(o) for o in objs]
     finally:
         db.close()
@@ -757,6 +825,7 @@ def save_propietario(bo: PropietarioBO) -> PropietarioBO:
                 db_obj.telefono = bo.telefono
                 db_obj.email = bo.email
                 db_obj.contrasegna_hash = bo.contrasegna_hash
+                db_obj.id_agente_creador = bo.id_agente_creador
         else:
             db_obj = PropietarioTable(
                 tipo_doc=bo.tipo_doc,
@@ -767,6 +836,7 @@ def save_propietario(bo: PropietarioBO) -> PropietarioBO:
                 telefono=bo.telefono,
                 email=bo.email,
                 contrasegna_hash=bo.contrasegna_hash,
+                id_agente_creador=bo.id_agente_creador,
             )
             db.add(db_obj)
         db.commit()
@@ -780,6 +850,16 @@ def list_propietarios() -> List[PropietarioBO]:
     db = SessionLocal()
     try:
         objs = db.query(PropietarioTable).all()
+        return [to_bo_propietario(o) for o in objs]
+    finally:
+        db.close()
+
+
+def list_propietarios_by_agente(id_agente: int) -> List[PropietarioBO]:
+    """Lista propietarios creados por un agente específico."""
+    db = SessionLocal()
+    try:
+        objs = db.query(PropietarioTable).filter(PropietarioTable.id_agente_creador == id_agente).all()
         return [to_bo_propietario(o) for o in objs]
     finally:
         db.close()
@@ -938,6 +1018,36 @@ def list_propiedades() -> List[PropiedadBO]:
         db.close()
 
 
+def list_propiedades_by_agente(id_agente: int) -> List[PropiedadBO]:
+    """
+    Lista propiedades actualmente asignadas a un agente específico.
+    """
+    db = SessionLocal()
+    try:
+        now = datetime.now()
+        # Obtener todas las asignaciones activas del agente
+        asignaciones = (
+            db.query(AgenteAsignadoTable)
+            .filter(
+                AgenteAsignadoTable.id_agente == id_agente,
+                AgenteAsignadoTable.fecha_hora_desde <= now,
+                (AgenteAsignadoTable.fecha_hora_hasta.is_(None))
+                | (AgenteAsignadoTable.fecha_hora_hasta >= now),
+            )
+            .all()
+        )
+        
+        # Obtener las propiedades de esas asignaciones
+        propiedad_ids = [asig.id_propiedad for asig in asignaciones]
+        if not propiedad_ids:
+            return []
+        
+        objs = db.query(PropiedadTable).filter(PropiedadTable.id.in_(propiedad_ids)).all()
+        return [to_bo_propiedad(o) for o in objs]
+    finally:
+        db.close()
+
+
 def get_contrato_by_id(nro_contrato: int) -> Optional[ContratoBO]:
     db = SessionLocal()
     try:
@@ -995,6 +1105,13 @@ def save_contrato(bo: ContratoBO) -> ContratoBO:
                 db_obj.tipo_contrato = bo.tipo_contrato
                 db_obj.ruta_documento_respaldo = bo.ruta_documento_respaldo
                 db_obj.fecha_ultimo_aviso_mora = bo.fecha_ultimo_aviso_mora
+                db_obj.recibos_sueldo_detalle = bo.recibos_sueldo_detalle
+                db_obj.garantias_detalle = bo.garantias_detalle
+                db_obj.ruta_recibos_sueldo = bo.ruta_recibos_sueldo
+                db_obj.ruta_garantias = bo.ruta_garantias
+                db_obj.decision_propietario = bo.decision_propietario
+                db_obj.fecha_decision_propietario = bo.fecha_decision_propietario
+                db_obj.observaciones_propietario = bo.observaciones_propietario
         else:
             db_obj = ContratoTable(
                 fecha_solicitud=bo.fecha_solicitud,
@@ -1009,6 +1126,13 @@ def save_contrato(bo: ContratoBO) -> ContratoBO:
                 tipo_contrato=bo.tipo_contrato,
                 ruta_documento_respaldo=bo.ruta_documento_respaldo,
                 fecha_ultimo_aviso_mora=bo.fecha_ultimo_aviso_mora,
+                recibos_sueldo_detalle=bo.recibos_sueldo_detalle,
+                garantias_detalle=bo.garantias_detalle,
+                ruta_recibos_sueldo=bo.ruta_recibos_sueldo,
+                ruta_garantias=bo.ruta_garantias,
+                decision_propietario=bo.decision_propietario,
+                fecha_decision_propietario=bo.fecha_decision_propietario,
+                observaciones_propietario=bo.observaciones_propietario,
             )
             db.add(db_obj)
         db.commit()

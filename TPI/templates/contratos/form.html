@@ -88,6 +88,18 @@
                 <input type="file" id="documento_respaldo" name="documento_respaldo" accept=".pdf,.png,.jpg,.jpeg">
                 <small style="color: var(--text-muted);">Opcional: Adjunta copia digitalizada de las garantías o contrato físico.</small>
             </div>
+
+            <div id="campos-alquiler" class="form-group form-group-full" style="display: block;">
+                <label for="recibos_sueldo_detalle"><i class="bi bi-receipt"></i> Recibos de sueldo y datos laborales</label>
+                <textarea id="recibos_sueldo_detalle" name="recibos_sueldo_detalle" rows="3" placeholder="Empleador, antigüedad, ingresos netos y períodos presentados"></textarea>
+                <input type="file" id="recibos_sueldo_file" name="recibos_sueldo" accept=".pdf,.png,.jpg,.jpeg">
+            </div>
+
+            <div id="campos-garantias" class="form-group form-group-full" style="display: block;">
+                <label for="garantias_detalle"><i class="bi bi-shield-check"></i> Garantías y datos de contacto</label>
+                <textarea id="garantias_detalle" name="garantias_detalle" rows="3" placeholder="Tipo de garantía, titular, DNI, domicilio, teléfono y relación con el interesado"></textarea>
+                <input type="file" id="garantias_file" name="garantias" accept=".pdf,.png,.jpg,.jpeg">
+            </div>
         </div>
         
         <div style="display: flex; gap: 0.8rem; margin-top: 1.8rem; justify-content: flex-end;">
@@ -98,4 +110,44 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoContratoSelect = document.getElementById('tipo_contrato');
+    const recibosSection = document.getElementById('campos-alquiler');
+    const garantiasSection = document.getElementById('campos-garantias');
+    const recibosTextarea = document.getElementById('recibos_sueldo_detalle');
+    const recibosFile = document.getElementById('recibos_sueldo_file');
+    const garantiasTextarea = document.getElementById('garantias_detalle');
+    const garantiasFile = document.getElementById('garantias_file');
+
+    function actualizarCampos() {
+        if (tipoContratoSelect.value === 'Alquiler') {
+            recibosSection.style.display = 'block';
+            garantiasSection.style.display = 'block';
+            recibosTextarea.required = true;
+            recibosFile.required = true;
+            garantiasTextarea.required = true;
+            garantiasFile.required = true;
+        } else {
+            recibosSection.style.display = 'none';
+            garantiasSection.style.display = 'none';
+            recibosTextarea.required = false;
+            recibosFile.required = false;
+            garantiasTextarea.required = false;
+            garantiasFile.required = false;
+            // Limpiar valores
+            recibosTextarea.value = '';
+            recibosFile.value = '';
+            garantiasTextarea.value = '';
+            garantiasFile.value = '';
+        }
+    }
+
+    tipoContratoSelect.addEventListener('change', actualizarCampos);
+    
+    // Ejecutar al cargar
+    actualizarCampos();
+});
+</script>
 {% endblock %}

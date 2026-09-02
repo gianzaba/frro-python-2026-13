@@ -164,19 +164,19 @@ def dashboard():
         id_propietario=id_propietario,
         id_cliente=id_cliente,
         mes=mes,
-        id_agente_solicitante=agente_id if id_propietario or id_cliente else None,
+        id_agente_solicitante=agente_id,
     )
 
-    propiedades = controller.listar_propiedades()
+    propiedades = controller.listar_propiedades(id_agente=agente_id)
     disponibles = sum(
         1 for p in propiedades if p.estado.lower() == "disponible"
     )
     alquiladas = sum(1 for p in propiedades if p.estado.lower() == "alquilada")
     vendidas = sum(1 for p in propiedades if p.estado.lower() == "vendida")
 
-    clientes = controller.listar_clientes()
-    propietarios = controller.listar_propietarios()
-    contratos = controller.listar_contratos()
+    clientes = controller.listar_clientes(id_agente=agente_id)
+    propietarios = controller.listar_propietarios(id_agente=agente_id)
+    contratos = controller.listar_contratos(id_agente=agente_id)
     ranking_vacantes = controller.obtener_ranking_propiedades_vacantes()
 
     cobrado_mes = stats.get("total_cobrado_mes", 0.0)
@@ -225,7 +225,8 @@ def dashboard():
 @views_blueprint.route("/propiedades")
 @login_required
 def propiedades_list():
-    propiedades = controller.listar_propiedades()
+    agente_id = session.get("agente_id")
+    propiedades = controller.listar_propiedades(id_agente=agente_id)
     prop_with_owners = []
     for p in propiedades:
         propietario = controller.obtener_propietario(p.id_propietario)
@@ -259,7 +260,8 @@ def propiedades_inactivas():
 @views_blueprint.route("/propiedades/nueva", methods=["GET", "POST"])
 @login_required
 def propiedad_crear():
-    propietarios = controller.listar_propietarios()
+    agente_id = session.get("agente_id")
+    propietarios = controller.listar_propietarios(id_agente=agente_id)
 
     if request.method == "POST":
         direccion = request.form.get("direccion", "").strip()
@@ -284,6 +286,16 @@ def propiedad_crear():
 @views_blueprint.route("/propiedades/<int:id_propiedad>")
 @login_required
 def propiedad_detalle(id_propiedad: int):
+    agente_id = session.get("agente_id")
+    
+    # Verificar si el agente tiene permiso para acceder a esta propiedad
+    if not controller.puede_acceder_propiedad(agente_id, id_propiedad):
+        flash(
+            "No tienes permiso para acceder a esta propiedad.",
+            "danger",
+        )
+        return redirect(url_for("views.propiedades_list"))
+    
     p = controller.obtener_propiedad(id_propiedad)
     if not p:
         abort(404)
@@ -294,7 +306,7 @@ def propiedad_detalle(id_propiedad: int):
         controller.obtener_agente(assignment.id_agente) if assignment else None
     )
 
-    contratos = controller.listar_contratos()
+    contratos = controller.listar_contratos(id_agente=session.get("agente_id"))
     contratos_prop = []
     for c in contratos:
         if c.id_propiedad == p.id:
@@ -319,6 +331,16 @@ def propiedad_detalle(id_propiedad: int):
 )
 @login_required
 def propiedad_asignar(id_propiedad: int):
+    agente_id = session.get("agente_id")
+    
+    # Solo admin puede asignar agentes
+    if not controller.es_administrador(agente_id):
+        flash(
+            "No tienes permiso para asignar agentes a propiedades.",
+            "danger",
+        )
+        return redirect(url_for("views.propiedades_list"))
+    
     p = controller.obtener_propiedad(id_propiedad)
     if not p:
         abort(404)
@@ -359,6 +381,16 @@ def propiedad_asignar(id_propiedad: int):
 @views_blueprint.route("/propiedades/<int:id_propiedad>/visitas")
 @login_required
 def propiedad_visitas(id_propiedad: int):
+    agente_id = session.get("agente_id")
+    
+    # Verificar si el agente tiene permiso para acceder a esta propiedad
+    if not controller.puede_acceder_propiedad(agente_id, id_propiedad):
+        flash(
+            "No tienes permiso para acceder a esta propiedad.",
+            "danger",
+        )
+        return redirect(url_for("views.propiedades_list"))
+    
     p = controller.obtener_propiedad(id_propiedad)
     if not p:
         abort(404)
@@ -453,7 +485,8 @@ def agenda_visita_cancelar(id_agenda: int):
 @views_blueprint.route("/clientes")
 @login_required
 def clientes_list():
-    clientes = controller.listar_clientes()
+    agente_id = session.get("agente_id")
+    clientes = controller.listar_clientes(id_agente=agente_id)
     return render_template("clientes/list.html", clientes=clientes)
 
 
@@ -468,10 +501,12 @@ def cliente_crear():
         nro_doc = request.form.get("nro_doc", "").strip()
         domicilio = request.form.get("domicilio", "").strip()
         telefono = request.form.get("telefono", "").strip()
+        agente_id = session.get("agente_id")
 
         try:
             controller.registrar_cliente(
-                nombre, apellido, email, tipo_doc, nro_doc, domicilio, telefono
+                nombre, apellido, email, tipo_doc, nro_doc, domicilio, telefono,
+                id_agente_creador=agente_id
             )
             flash("Cliente registrado exitosamente.", "success")
             return redirect(url_for("views.clientes_list"))
@@ -487,7 +522,8 @@ def cliente_crear():
 @views_blueprint.route("/propietarios")
 @login_required
 def propietarios_list():
-    propietarios = controller.listar_propietarios()
+    agente_id = session.get("agente_id")
+    propietarios = controller.listar_propietarios(id_agente=agente_id)
     return render_template("propietarios/list.html", propietarios=propietarios)
 
 
@@ -502,10 +538,12 @@ def propietario_crear():
         nro_doc = request.form.get("nro_doc", "").strip()
         domicilio = request.form.get("domicilio", "").strip()
         telefono = request.form.get("telefono", "").strip()
+        agente_id = session.get("agente_id")
 
         try:
             controller.registrar_propietario(
-                nombre, apellido, email, tipo_doc, nro_doc, domicilio, telefono
+                nombre, apellido, email, tipo_doc, nro_doc, domicilio, telefono,
+                id_agente_creador=agente_id
             )
             flash("Propietario registrado exitosamente.", "success")
             return redirect(url_for("views.propietarios_list"))
@@ -521,7 +559,7 @@ def propietario_crear():
 @views_blueprint.route("/contratos")
 @login_required
 def contratos_list():
-    contratos = controller.listar_contratos()
+    contratos = controller.listar_contratos(id_agente=session.get("agente_id"))
     contratos_info = []
     for c in contratos:
         cliente = controller.obtener_cliente(c.id_cliente)
@@ -541,8 +579,9 @@ def contratos_list():
 @views_blueprint.route("/contratos/nuevo", methods=["GET", "POST"])
 @login_required
 def contrato_crear():
-    clientes = controller.listar_clientes()
-    propiedades = controller.listar_propiedades()
+    agente_id = session.get("agente_id")
+    clientes = controller.listar_clientes(id_agente=agente_id)
+    propiedades = controller.listar_propiedades(id_agente=agente_id)
 
     # Filtrar solo propiedades disponibles con agentes asignados
     propiedades_disponibles = []
@@ -576,6 +615,8 @@ def contrato_crear():
             request.form.get("comision_agente_porcentaje", type=float) or 3.0
         )
         tipo_contrato = request.form.get("tipo_contrato", "Alquiler")
+        recibos_sueldo_detalle = request.form.get("recibos_sueldo_detalle", "").strip()
+        garantias_detalle = request.form.get("garantias_detalle", "").strip()
 
         # Manejo de archivo adjunto
         file = request.files.get("documento_respaldo")
@@ -590,6 +631,23 @@ def contrato_crear():
             file.save(filepath)
             ruta_documento = filepath
 
+        def guardar_adjunto(nombre_campo):
+            adjunto = request.files.get(nombre_campo)
+            if not adjunto or not adjunto.filename:
+                return None
+            filename = secure_filename(adjunto.filename)
+            upload_dir = os.path.join("static", "uploads")
+            os.makedirs(upload_dir, exist_ok=True)
+            filepath = os.path.join(
+                upload_dir,
+                f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_campo}_{filename}",
+            )
+            adjunto.save(filepath)
+            return filepath
+
+        ruta_recibos = guardar_adjunto("recibos_sueldo")
+        ruta_garantias = guardar_adjunto("garantias")
+
         try:
             controller.solicitar_contrato(
                 id_cliente,
@@ -600,8 +658,15 @@ def contrato_crear():
                 comision_agente_porcentaje=comision_agente_porcentaje,
                 tipo_contrato=tipo_contrato,
                 ruta_documento_respaldo=ruta_documento,
+                recibos_sueldo_detalle=recibos_sueldo_detalle,
+                garantias_detalle=garantias_detalle,
+                ruta_recibos_sueldo=ruta_recibos,
+                ruta_garantias=ruta_garantias,
             )
-            flash("Solicitud de contrato creada exitosamente.", "success")
+            flash(
+                "Solicitud de contrato creada exitosamente. Oferta enviada al propietario para su aprobación.",
+                "success",
+            )
             return redirect(url_for("views.contratos_list"))
         except ValueError as e:
             flash(str(e), "danger")
@@ -629,10 +694,39 @@ def contrato_firmar(nro_contrato: int):
     )
 
 
+@views_blueprint.route(
+    "/contratos/<int:nro_contrato>/decision-propietario", methods=["POST"]
+)
+@login_required
+def contrato_decision_propietario(nro_contrato: int):
+    decision = request.form.get("decision", "").strip().lower()
+    observaciones = request.form.get("observaciones_propietario", "")
+    if decision not in ("aprobar", "rechazar"):
+        flash("Debe indicar si el propietario aprueba o rechaza la oferta.", "danger")
+        return redirect(url_for("views.contrato_detalle", nro_contrato=nro_contrato))
+    try:
+        controller.decidir_contrato_propietario(
+            nro_contrato, decision == "aprobar", observaciones
+        )
+        mensaje = "Oferta aprobada por el propietario." if decision == "aprobar" else "Oferta rechazada por el propietario."
+        flash(mensaje, "success" if decision == "aprobar" else "warning")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("views.contrato_detalle", nro_contrato=nro_contrato))
+
+
 @views_blueprint.route("/contratos/<int:nro_contrato>")
 @login_required
 def contrato_detalle(nro_contrato: int):
     try:
+        contrato = controller.obtener_contrato(nro_contrato)
+        if not contrato:
+            abort(404)
+        if not controller.puede_acceder_contrato(
+            session.get("agente_id"), contrato
+        ):
+            flash("No tienes permiso para acceder a este contrato.", "danger")
+            return redirect(url_for("views.contratos_list"))
         detalles = controller.obtener_detalle_contrato(nro_contrato)
         return render_template("contratos/detalle.html", **detalles)
     except ValueError as e:
@@ -749,9 +843,10 @@ def contrato_imprimir(nro_contrato: int):
 @views_blueprint.route("/finanzas", methods=["GET"])
 @login_required
 def finanzas_dashboard():
-    pagos_inquilinos = controller.listar_pagos_inquilinos()
-    liquidaciones = controller.listar_pagos_propietarios()
-    contratos = controller.listar_contratos()
+    agente_id = session.get("agente_id")
+    pagos_inquilinos = controller.listar_pagos_inquilinos(agente_id)
+    liquidaciones = controller.listar_pagos_propietarios(agente_id)
+    contratos = controller.listar_contratos(id_agente=agente_id)
 
     # Filter active contracts that belong to properties of type "Alquiler"
     active_lease_contratos = []
@@ -789,8 +884,12 @@ def finanzas_dashboard():
             {"liq": liq, "propietario": propietario, "contrato": c}
         )
 
-    estado_alquileres = controller.obtener_estado_cobros_alquileres_mes()
-    contratos_por_vencer = controller.obtener_contratos_por_vencer(90)
+    estado_alquileres = controller.obtener_estado_cobros_alquileres_mes(
+        id_agente=agente_id
+    )
+    contratos_por_vencer = controller.obtener_contratos_por_vencer(
+        90, id_agente=agente_id
+    )
 
     return render_template(
         "finanzas.html",
@@ -1008,16 +1107,19 @@ def finanzas_enviar_alerta_mora_individual(nro_contrato: int):
 @views_blueprint.route("/reclamos")
 @login_required
 def reclamos_dashboard():
+    agente_id = session.get("agente_id")
     estado_filtro = request.args.get("estado", "").strip()
     nro_contrato_filtro = request.args.get("nro_contrato", type=int)
 
     reclamos_detallados = controller.listar_reclamos_con_detalle(
         nro_contrato=nro_contrato_filtro,
         estado=estado_filtro if estado_filtro else None,
+        id_agente=agente_id,
     )
 
     todos_reclamos = [
-        r["reclamo"] for r in controller.listar_reclamos_con_detalle()
+        r["reclamo"]
+        for r in controller.listar_reclamos_con_detalle(id_agente=agente_id)
     ]
     total_reclamos = len(todos_reclamos)
     total_pendientes = len(
@@ -1053,7 +1155,9 @@ def reclamos_dashboard():
 def reclamo_nuevo():
     nro_contrato_param = request.args.get("nro_contrato", type=int)
     contratos_activos = [
-        c for c in controller.listar_contratos() if c.estado == "activo"
+        c
+        for c in controller.listar_contratos(id_agente=session.get("agente_id"))
+        if c.estado == "activo"
     ]
     contratos_opciones = []
     for c in contratos_activos:
@@ -1112,6 +1216,12 @@ def reclamo_actualizar_estado(id_reclamo: int):
     origen = request.form.get("origen", "reclamos")
 
     try:
+        detalles = controller.obtener_detalle_reclamo(id_reclamo)
+        if not controller.puede_acceder_contrato(
+            session.get("agente_id"), detalles["contrato"]
+        ):
+            flash("No tienes permiso para modificar este reclamo.", "danger")
+            return redirect(url_for("views.reclamos_dashboard"))
         controller.actualizar_estado_reclamo(
             id_reclamo=id_reclamo,
             nuevo_estado=nuevo_estado,
@@ -1140,6 +1250,11 @@ def reclamo_actualizar_estado(id_reclamo: int):
 def reclamo_presupuesto_informe(id_reclamo: int):
     try:
         detalles = controller.obtener_detalle_reclamo(id_reclamo)
+        if not controller.puede_acceder_contrato(
+            session.get("agente_id"), detalles["contrato"]
+        ):
+            flash("No tienes permiso para acceder a este reclamo.", "danger")
+            return redirect(url_for("views.reclamos_dashboard"))
         return render_template("reclamos/presupuesto.html", **detalles)
     except ValueError as e:
         flash(str(e), "danger")
