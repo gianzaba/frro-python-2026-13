@@ -933,3 +933,158 @@ input[type="file"]::file-selector-button:hover {
         padding: 1.4rem 1.1rem;
     }
 }
+
+/* --- Tabbed Interface System --- */
+.tabs-container {
+    margin-bottom: 1.8rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.tabs-buttons {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.tabs-buttons::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--card-border);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    color: var(--text-secondary);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.75rem 1.35rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    white-space: nowrap;
+}
+
+.tab-btn i {
+    font-size: 1rem;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
+
+.tab-btn:hover {
+    color: #ffffff;
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.35);
+}
+
+.tab-btn:hover i {
+    color: #a5b4fc;
+}
+
+.tab-btn.active {
+    color: #ffffff;
+    background: #1e293b;
+    border-color: #818cf8;
+    border-bottom: 2px solid #818cf8;
+    box-shadow: 0 -2px 10px rgba(99, 102, 241, 0.2);
+}
+
+.tab-btn.active i {
+    color: #818cf8;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: tabFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Actions Dropdown (CSS hover + click support) --- */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.45rem);
+    background: #0f172a;
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    z-index: 1050;
+    min-width: 240px;
+    padding: 0.45rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.dropdown:hover .dropdown-menu,
+.dropdown.show .dropdown-menu,
+.dropdown:focus-within .dropdown-menu {
+    display: block;
+    animation: dropdownPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.95rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.86rem;
+    font-weight: 500;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.dropdown-item i {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.dropdown-item:hover {
+    color: #ffffff;
+    background: rgba(99, 102, 241, 0.18);
+    transform: translateX(3px);
+}
+
+@keyframes dropdownPop {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+

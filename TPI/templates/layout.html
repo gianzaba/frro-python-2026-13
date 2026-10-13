@@ -66,7 +66,7 @@
     }
     </style>
     <!-- Custom Design System CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1.1">
     
     {% block head %}{% endblock %}
 </head>
@@ -263,6 +263,23 @@
             bd.classList.toggle('active');
         }
     }
+
+    // Generic Dropdown Click Toggle
+    document.addEventListener('click', function(e) {
+        const toggleBtn = e.target.closest('.dropdown > button, .dropdown > .btn');
+        const openDropdowns = document.querySelectorAll('.dropdown.show');
+        
+        if (toggleBtn) {
+            const dropdown = toggleBtn.closest('.dropdown');
+            const wasOpen = dropdown.classList.contains('show');
+            openDropdowns.forEach(d => d.classList.remove('show'));
+            if (!wasOpen) {
+                dropdown.classList.add('show');
+            }
+        } else if (!e.target.closest('.dropdown-menu')) {
+            openDropdowns.forEach(d => d.classList.remove('show'));
+        }
+    });
 
     // Auto-upgrade native confirm dialogs to beautiful SweetAlert2 modals
     document.addEventListener('submit', function(e) {
