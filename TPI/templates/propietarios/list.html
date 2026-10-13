@@ -20,7 +20,7 @@
 
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-        <h2><i class="bi bi-person-lines-fill" style="color: #818cf8;"></i> Listado de Propietarios</h2>
+        <h2><i class="bi bi-person-lines-fill" style="color: #818cf8;"></i> {% if es_admin %}Directorio General de Propietarios{% else %}Mi Cartera de Propietarios{% endif %}</h2>
         <span class="badge badge-admin">{{ propietarios|length }} Registros</span>
     </div>
     
@@ -32,17 +32,28 @@
                     <th>ID</th>
                     <th>Documento</th>
                     <th>Nombre Completo</th>
+                    {% if es_admin %}<th>Agente Asignado</th>{% endif %}
                     <th>Domicilio</th>
                     <th>Teléfono</th>
                     <th>Email</th>
                 </tr>
             </thead>
             <tbody>
-                {% for p in propietarios %}
+                {% for item in propietarios_info %}
+                {% set p = item.propietario %}
                 <tr>
                     <td><strong>#{{ p.id }}</strong></td>
                     <td><span class="badge badge-admin" style="font-size: 0.72rem;">{{ p.tipo_doc }} {{ p.nro_doc }}</span></td>
                     <td style="font-weight: 600; color: #ffffff;">{{ p.nombre_completo }}</td>
+                    {% if es_admin %}
+                    <td>
+                        {% if item.agente %}
+                        <span class="badge badge-agente"><i class="bi bi-person-badge"></i> {{ item.agente.nombre_completo }}</span>
+                        {% else %}
+                        <span class="badge badge-disponible">Inmobiliaria</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
                     <td>{{ p.domicilio }}</td>
                     <td><i class="bi bi-telephone" style="color: var(--text-muted);"></i> {{ p.telefono }}</td>
                     <td><i class="bi bi-envelope" style="color: var(--text-muted);"></i> {{ p.email }}</td>
@@ -52,7 +63,7 @@
         </table>
         {% else %}
         <div class="alert alert-info" style="justify-content: center; padding: 2rem;">
-            <i class="bi bi-info-circle" style="font-size: 1.2rem;"></i> No hay propietarios registrados en el sistema.
+            <i class="bi bi-info-circle" style="font-size: 1.2rem;"></i> No hay propietarios registrados en {% if es_admin %}el sistema{% else %}tu cartera personal{% endif %}.
         </div>
         {% endif %}
     </div>

@@ -98,6 +98,7 @@ def registrar_cliente(
     nro_doc: str,
     domicilio: str,
     telefono: str,
+    id_agente: Optional[int] = None,
 ) -> ClienteBO:
     """
     Registra un nuevo cliente interesado en contratos.
@@ -118,6 +119,7 @@ def registrar_cliente(
         telefono=telefono,
         email=email,
         contrasegna_hash="",
+        id_agente=id_agente,
     )
     return db.save_cliente(bo)
 
@@ -130,6 +132,7 @@ def registrar_propietario(
     nro_doc: str,
     domicilio: str,
     telefono: str,
+    id_agente: Optional[int] = None,
 ) -> PropietarioBO:
     """
     Registra un nuevo propietario de inmuebles.
@@ -150,6 +153,7 @@ def registrar_propietario(
         telefono=telefono,
         email=email,
         contrasegna_hash="",
+        id_agente=id_agente,
     )
     return db.save_propietario(bo)
 
@@ -316,6 +320,27 @@ def firmar_contrato(
     else:
         propiedad.estado = "vendida"
     db.save_propiedad(propiedad)
+
+    # Cancelar automáticamente cualquier otra solicitud pendiente para la misma propiedad
+    todos_contratos = db.list_contratos()
+    for otro in todos_contratos:
+        if (
+            otro.id_propiedad == contrato.id_propiedad
+            and otro.nro_contrato != contrato.nro_contrato
+            and otro.estado == "solicitado"
+        ):
+            otro.estado = "cancelado"
+            db.save_contrato(otro)
+            registrar_log_auditoria(
+                id_agente=id_agente_solicitante,
+                entidad="Contrato",
+                id_entidad=otro.nro_contrato,
+                accion="Cancelar",
+                descripcion=(
+                    f"Solicitud #{otro.nro_contrato} cancelada automáticamente al haberse firmado "
+                    f"el contrato #{nro_contrato} sobre la propiedad {propiedad.direccion}."
+                ),
+            )
 
     agente_nombre = "Sistema"
     if id_agente_solicitante:
@@ -628,12 +653,12 @@ def listar_propiedades() -> List[PropiedadBO]:
     return db.list_propiedades()
 
 
-def listar_clientes() -> List[ClienteBO]:
-    return db.list_clientes()
+def listar_clientes(id_agente: Optional[int] = None) -> List[ClienteBO]:
+    return db.list_clientes(id_agente=id_agente)
 
 
-def listar_propietarios() -> List[PropietarioBO]:
-    return db.list_propietarios()
+def listar_propietarios(id_agente: Optional[int] = None) -> List[PropietarioBO]:
+    return db.list_propietarios(id_agente=id_agente)
 
 
 def listar_agentes() -> List[AgenteBO]:
@@ -1958,4 +1983,92 @@ def obtener_contratos_por_vencer(dias_anticipacion: int = 90) -> List[dict]:
     
     por_vencer.sort(key=lambda x: x["dias_restantes"])
     return por_vencer
+
+
+def traspasar_titularidad_a_comprador(
+    id_propiedad: int,
+    nuevo_tipo_operacion: str = "Alquiler",
+    id_agente_solicitante: Optional[int] = None,
+) -> PropiedadBO:
+    """
+    Traspasa la titularidad de una propiedad vendida al comprador del contrato de compraventa.
+    Promueve al cliente comprador a propietario (si aún no lo está) y reactiva la propiedad
+    como disponible para su nuevo destino (Alquiler o Venta).
+    """
+    propiedad = db.get_propiedad_by_id(id_propiedad)
+    if not propiedad:
+        raise ValueError("La propiedad especificada no existe.")
+
+    if propiedad.estado != "vendida":
+        raise ValueError("Solo se puede traspasar la titularidad de propiedades en estado 'vendida'.")
+
+    # Buscar contrato de compraventa activo o finalizado
+    contratos = db.list_contratos()
+    contrato_venta = None
+    for c in contratos:
+        if (
+            c.id_propiedad == id_propiedad
+            and c.tipo_contrato.lower() == "compraventa"
+            and c.estado in ["activo", "finalizado"]
+        ):
+            contrato_venta = c
+            break
+
+    if not contrato_venta:
+        raise ValueError("No se encontró un contrato de compraventa asociado a esta propiedad vendida.")
+
+    cliente_comprador = db.get_cliente_by_id(contrato_venta.id_cliente)
+    if not cliente_comprador:
+        raise ValueError("No se encontró la información del cliente comprador.")
+
+    # Verificar si ya existe como Propietario por documento
+    propietario_nuevo = db.get_propietario_by_doc(cliente_comprador.tipo_doc, cliente_comprador.nro_doc)
+    if not propietario_nuevo:
+        # Registrar al comprador como nuevo Propietario
+        propietario_nuevo = registrar_propietario(
+            nombre=cliente_comprador.nombre,
+            apellido=cliente_comprador.apellido,
+            email=cliente_comprador.email,
+            tipo_doc=cliente_comprador.tipo_doc,
+            nro_doc=cliente_comprador.nro_doc,
+            domicilio=cliente_comprador.domicilio,
+            telefono=cliente_comprador.telefono,
+            id_agente=cliente_comprador.id_agente or id_agente_solicitante,
+        )
+
+    propietario_anterior = db.get_propietario_by_id(propiedad.id_propietario)
+    nombre_anterior = propietario_anterior.nombre_completo if propietario_anterior else "Propietario anterior"
+
+    # Actualizar la propiedad
+    propiedad.id_propietario = propietario_nuevo.id
+    propiedad.tipo = nuevo_tipo_operacion
+    propiedad.estado = "disponible"
+    propiedad.fecha_disponibilidad = date.today()
+    propiedad_actualizada = db.save_propiedad(propiedad)
+
+    # El contrato de compraventa original ahora pasa a 'finalizado' para archivar el ciclo anterior
+    if contrato_venta.estado == "activo":
+        contrato_venta.estado = "finalizado"
+        db.save_contrato(contrato_venta)
+
+    # Registrar log de auditoría
+    agente_nombre = "Sistema"
+    if id_agente_solicitante:
+        ag = db.get_agente_by_id(id_agente_solicitante)
+        if ag:
+            agente_nombre = ag.nombre_completo
+
+    registrar_log_auditoria(
+        id_agente=id_agente_solicitante,
+        entidad="Propiedad",
+        id_entidad=id_propiedad,
+        accion="TraspasoTitularidad",
+        descripcion=(
+            f"El agente {agente_nombre} traspasó la titularidad de la propiedad '{propiedad.direccion}' "
+            f"de {nombre_anterior} a {propietario_nuevo.nombre_completo} (Contrato Compraventa #{contrato_venta.nro_contrato}). "
+            f"Inmueble reactivado como '{propiedad.tipo}' en estado 'disponible'."
+        ),
+    )
+
+    return propiedad_actualizada
 

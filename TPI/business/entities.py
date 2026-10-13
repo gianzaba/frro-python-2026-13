@@ -31,11 +31,59 @@ class Persona:
 
 
 class Cliente(Persona):
-    pass
+    def __init__(
+        self,
+        id: Optional[int] = None,
+        tipo_doc: str = "",
+        nro_doc: str = "",
+        nombre: str = "",
+        apellido: str = "",
+        domicilio: str = "",
+        telefono: str = "",
+        email: str = "",
+        contrasegna_hash: str = "",
+        id_agente: Optional[int] = None,
+    ):
+        super().__init__(
+            id=id,
+            tipo_doc=tipo_doc,
+            nro_doc=nro_doc,
+            nombre=nombre,
+            apellido=apellido,
+            domicilio=domicilio,
+            telefono=telefono,
+            email=email,
+            contrasegna_hash=contrasegna_hash,
+        )
+        self.id_agente = id_agente
 
 
 class Propietario(Persona):
-    pass
+    def __init__(
+        self,
+        id: Optional[int] = None,
+        tipo_doc: str = "",
+        nro_doc: str = "",
+        nombre: str = "",
+        apellido: str = "",
+        domicilio: str = "",
+        telefono: str = "",
+        email: str = "",
+        contrasegna_hash: str = "",
+        id_agente: Optional[int] = None,
+    ):
+        super().__init__(
+            id=id,
+            tipo_doc=tipo_doc,
+            nro_doc=nro_doc,
+            nombre=nombre,
+            apellido=apellido,
+            domicilio=domicilio,
+            telefono=telefono,
+            email=email,
+            contrasegna_hash=contrasegna_hash,
+        )
+        self.id_agente = id_agente
 
 
 class Agente(Persona):

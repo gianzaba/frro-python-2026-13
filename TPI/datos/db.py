@@ -15,6 +15,7 @@ from sqlalchemy import (  # noqa: E402
     DateTime,
     Numeric,
     Boolean,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship  # noqa: E402
 
@@ -66,38 +67,23 @@ class PersonaTable(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tipo_doc = Column(String(50), nullable=False)
-    nro_doc = Column(String(50), unique=True, nullable=False)
+    nro_doc = Column(String(50), nullable=False)
     nombre = Column(String(100), nullable=False)
     apellido = Column(String(100), nullable=False)
     domicilio = Column(String(200), nullable=False)
     telefono = Column(String(50), nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
+    email = Column(String(100), nullable=False)
     contrasegna_hash = Column(String(255), nullable=False)
     tipo_persona = Column(String(50), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("tipo_persona", "nro_doc", name="uq_persona_tipo_nro_doc"),
+        UniqueConstraint("tipo_persona", "email", name="uq_persona_tipo_email"),
+    )
 
     __mapper_args__ = {
         "polymorphic_on": tipo_persona,
         "polymorphic_identity": "persona",
-    }
-
-
-class ClienteTable(PersonaTable):
-    __tablename__ = "cliente"
-
-    id = Column(Integer, ForeignKey("persona.id"), primary_key=True)
-
-    __mapper_args__ = {
-        "polymorphic_identity": "cliente",
-    }
-
-
-class PropietarioTable(PersonaTable):
-    __tablename__ = "propietario"
-
-    id = Column(Integer, ForeignKey("persona.id"), primary_key=True)
-
-    __mapper_args__ = {
-        "polymorphic_identity": "propietario",
     }
 
 
@@ -111,6 +97,32 @@ class AgenteTable(PersonaTable):
 
     __mapper_args__ = {
         "polymorphic_identity": "agente",
+    }
+
+
+class ClienteTable(PersonaTable):
+    __tablename__ = "cliente"
+
+    id = Column(Integer, ForeignKey("persona.id"), primary_key=True)
+    id_agente = Column(Integer, ForeignKey("agente.id"), nullable=True)
+
+    agente = relationship("AgenteTable", foreign_keys=[id_agente])
+
+    __mapper_args__ = {
+        "polymorphic_identity": "cliente",
+    }
+
+
+class PropietarioTable(PersonaTable):
+    __tablename__ = "propietario"
+
+    id = Column(Integer, ForeignKey("persona.id"), primary_key=True)
+    id_agente = Column(Integer, ForeignKey("agente.id"), nullable=True)
+
+    agente = relationship("AgenteTable", foreign_keys=[id_agente])
+
+    __mapper_args__ = {
+        "polymorphic_identity": "propietario",
     }
 
 
@@ -367,6 +379,16 @@ def init_db(reset: bool = False):
             if "fecha_ultimo_aviso_mora" not in cols_c:
                 needs_recreate = True
 
+        if not needs_recreate and "cliente" in existing_tables:
+            cols_cl = [c["name"] for c in inspector.get_columns("cliente")]
+            if "id_agente" not in cols_cl:
+                needs_recreate = True
+
+        if not needs_recreate and "propietario" in existing_tables:
+            cols_pr = [c["name"] for c in inspector.get_columns("propietario")]
+            if "id_agente" not in cols_pr:
+                needs_recreate = True
+
         if needs_recreate:
             recreate_all()
         else:
@@ -399,6 +421,7 @@ def to_bo_cliente(db_obj: Optional[ClienteTable]) -> Optional[ClienteBO]:
         telefono=db_obj.telefono,
         email=db_obj.email,
         contrasegna_hash=db_obj.contrasegna_hash,
+        id_agente=db_obj.id_agente,
     )
 
 
@@ -417,6 +440,7 @@ def to_bo_propietario(
         telefono=db_obj.telefono,
         email=db_obj.email,
         contrasegna_hash=db_obj.contrasegna_hash,
+        id_agente=db_obj.id_agente,
     )
 
 
@@ -667,6 +691,8 @@ def save_cliente(bo: ClienteBO) -> ClienteBO:
                 db_obj.telefono = bo.telefono
                 db_obj.email = bo.email
                 db_obj.contrasegna_hash = bo.contrasegna_hash
+                if bo.id_agente is not None:
+                    db_obj.id_agente = bo.id_agente
         else:
             db_obj = ClienteTable(
                 tipo_doc=bo.tipo_doc,
@@ -677,6 +703,7 @@ def save_cliente(bo: ClienteBO) -> ClienteBO:
                 telefono=bo.telefono,
                 email=bo.email,
                 contrasegna_hash=bo.contrasegna_hash,
+                id_agente=bo.id_agente,
             )
             db.add(db_obj)
         db.commit()
@@ -686,10 +713,13 @@ def save_cliente(bo: ClienteBO) -> ClienteBO:
         db.close()
 
 
-def list_clientes() -> List[ClienteBO]:
+def list_clientes(id_agente: Optional[int] = None) -> List[ClienteBO]:
     db = SessionLocal()
     try:
-        objs = db.query(ClienteTable).all()
+        query = db.query(ClienteTable)
+        if id_agente is not None:
+            query = query.filter(ClienteTable.id_agente == id_agente)
+        objs = query.all()
         return [to_bo_cliente(o) for o in objs]
     finally:
         db.close()
@@ -757,6 +787,8 @@ def save_propietario(bo: PropietarioBO) -> PropietarioBO:
                 db_obj.telefono = bo.telefono
                 db_obj.email = bo.email
                 db_obj.contrasegna_hash = bo.contrasegna_hash
+                if bo.id_agente is not None:
+                    db_obj.id_agente = bo.id_agente
         else:
             db_obj = PropietarioTable(
                 tipo_doc=bo.tipo_doc,
@@ -767,6 +799,7 @@ def save_propietario(bo: PropietarioBO) -> PropietarioBO:
                 telefono=bo.telefono,
                 email=bo.email,
                 contrasegna_hash=bo.contrasegna_hash,
+                id_agente=bo.id_agente,
             )
             db.add(db_obj)
         db.commit()
@@ -776,10 +809,13 @@ def save_propietario(bo: PropietarioBO) -> PropietarioBO:
         db.close()
 
 
-def list_propietarios() -> List[PropietarioBO]:
+def list_propietarios(id_agente: Optional[int] = None) -> List[PropietarioBO]:
     db = SessionLocal()
     try:
-        objs = db.query(PropietarioTable).all()
+        query = db.query(PropietarioTable)
+        if id_agente is not None:
+            query = query.filter(PropietarioTable.id_agente == id_agente)
+        objs = query.all()
         return [to_bo_propietario(o) for o in objs]
     finally:
         db.close()

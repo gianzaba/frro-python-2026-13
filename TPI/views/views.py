@@ -259,7 +259,10 @@ def propiedades_inactivas():
 @views_blueprint.route("/propiedades/nueva", methods=["GET", "POST"])
 @login_required
 def propiedad_crear():
-    propietarios = controller.listar_propietarios()
+    agente_id = session.get("agente_id")
+    es_admin = controller.es_administrador(agente_id)
+    filtro_agente = None if es_admin else agente_id
+    propietarios = controller.listar_propietarios(id_agente=filtro_agente)
 
     if request.method == "POST":
         direccion = request.form.get("direccion", "").strip()
@@ -304,6 +307,16 @@ def propiedad_detalle(id_propiedad: int):
                 {"contrato": c, "cliente": cliente, "agente": agente_c}
             )
 
+    contrato_venta = None
+    comprador = None
+    if p.estado == "vendida":
+        for cp in contratos_prop:
+            c = cp["contrato"]
+            if c.tipo_contrato.lower() == "compraventa" and c.estado in ["activo", "finalizado"]:
+                contrato_venta = c
+                comprador = cp["cliente"]
+                break
+
     return render_template(
         "propiedades/detail.html",
         p=p,
@@ -311,7 +324,33 @@ def propiedad_detalle(id_propiedad: int):
         agente_asignado=agente,
         assignment=assignment,
         contratos=contratos_prop,
+        contrato_venta=contrato_venta,
+        comprador=comprador,
     )
+
+
+@views_blueprint.route(
+    "/propiedades/<int:id_propiedad>/traspasar-titularidad", methods=["POST"]
+)
+@login_required
+def propiedad_traspasar_titularidad(id_propiedad: int):
+    nuevo_tipo = request.form.get("nuevo_tipo", "Alquiler")
+    id_agente = session.get("agente_id")
+    try:
+        controller.traspasar_titularidad_a_comprador(
+            id_propiedad=id_propiedad,
+            nuevo_tipo_operacion=nuevo_tipo,
+            id_agente_solicitante=id_agente,
+        )
+        flash(
+            "¡Titularidad traspasada con éxito! El comprador ha sido registrado como Propietario "
+            "y el inmueble se encuentra disponible para su nueva etapa comercial.",
+            "success",
+        )
+    except ValueError as e:
+        flash(str(e), "danger")
+
+    return redirect(url_for("views.propiedad_detalle", id_propiedad=id_propiedad))
 
 
 @views_blueprint.route(
@@ -453,8 +492,20 @@ def agenda_visita_cancelar(id_agenda: int):
 @views_blueprint.route("/clientes")
 @login_required
 def clientes_list():
-    clientes = controller.listar_clientes()
-    return render_template("clientes/list.html", clientes=clientes)
+    agente_id = session.get("agente_id")
+    es_admin = controller.es_administrador(agente_id)
+    filtro_agente = None if es_admin else agente_id
+    clientes = controller.listar_clientes(id_agente=filtro_agente)
+    clientes_info = []
+    for c in clientes:
+        agente = controller.obtener_agente(c.id_agente) if c.id_agente else None
+        clientes_info.append({"cliente": c, "agente": agente})
+    return render_template(
+        "clientes/list.html",
+        clientes=clientes,
+        clientes_info=clientes_info,
+        es_admin=es_admin,
+    )
 
 
 @views_blueprint.route("/clientes/nuevo", methods=["GET", "POST"])
@@ -468,12 +519,20 @@ def cliente_crear():
         nro_doc = request.form.get("nro_doc", "").strip()
         domicilio = request.form.get("domicilio", "").strip()
         telefono = request.form.get("telefono", "").strip()
+        id_agente = session.get("agente_id")
 
         try:
             controller.registrar_cliente(
-                nombre, apellido, email, tipo_doc, nro_doc, domicilio, telefono
+                nombre,
+                apellido,
+                email,
+                tipo_doc,
+                nro_doc,
+                domicilio,
+                telefono,
+                id_agente=id_agente,
             )
-            flash("Cliente registrado exitosamente.", "success")
+            flash("Cliente registrado exitosamente en tu cartera.", "success")
             return redirect(url_for("views.clientes_list"))
         except ValueError as e:
             flash(str(e), "danger")
@@ -487,8 +546,20 @@ def cliente_crear():
 @views_blueprint.route("/propietarios")
 @login_required
 def propietarios_list():
-    propietarios = controller.listar_propietarios()
-    return render_template("propietarios/list.html", propietarios=propietarios)
+    agente_id = session.get("agente_id")
+    es_admin = controller.es_administrador(agente_id)
+    filtro_agente = None if es_admin else agente_id
+    propietarios = controller.listar_propietarios(id_agente=filtro_agente)
+    propietarios_info = []
+    for p in propietarios:
+        agente = controller.obtener_agente(p.id_agente) if p.id_agente else None
+        propietarios_info.append({"propietario": p, "agente": agente})
+    return render_template(
+        "propietarios/list.html",
+        propietarios=propietarios,
+        propietarios_info=propietarios_info,
+        es_admin=es_admin,
+    )
 
 
 @views_blueprint.route("/propietarios/nuevo", methods=["GET", "POST"])
@@ -502,12 +573,20 @@ def propietario_crear():
         nro_doc = request.form.get("nro_doc", "").strip()
         domicilio = request.form.get("domicilio", "").strip()
         telefono = request.form.get("telefono", "").strip()
+        id_agente = session.get("agente_id")
 
         try:
             controller.registrar_propietario(
-                nombre, apellido, email, tipo_doc, nro_doc, domicilio, telefono
+                nombre,
+                apellido,
+                email,
+                tipo_doc,
+                nro_doc,
+                domicilio,
+                telefono,
+                id_agente=id_agente,
             )
-            flash("Propietario registrado exitosamente.", "success")
+            flash("Propietario registrado exitosamente en tu cartera.", "success")
             return redirect(url_for("views.propietarios_list"))
         except ValueError as e:
             flash(str(e), "danger")
@@ -541,7 +620,10 @@ def contratos_list():
 @views_blueprint.route("/contratos/nuevo", methods=["GET", "POST"])
 @login_required
 def contrato_crear():
-    clientes = controller.listar_clientes()
+    agente_id = session.get("agente_id")
+    es_admin = controller.es_administrador(agente_id)
+    filtro_agente = None if es_admin else agente_id
+    clientes = controller.listar_clientes(id_agente=filtro_agente)
     propiedades = controller.listar_propiedades()
 
     # Filtrar solo propiedades disponibles con agentes asignados

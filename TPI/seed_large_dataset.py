@@ -27,6 +27,7 @@ def seed_large_dataset():
             ag = controller.registrar_agente(nom, ape, mail, pwd, cuil, mat, tdoc, ndoc, dom, tel, rol)
             print(f" [+] Agente creado: {ag.nombre_completo} ({rol})")
         agentes_map[mail] = ag
+    agentes_list = list(agentes_map.values())
 
     # 2. Propietarios
     propietarios_data = [
@@ -49,11 +50,14 @@ def seed_large_dataset():
     ]
 
     propietarios_list = []
-    for nom, ape, mail, tdoc, ndoc, dom, tel in propietarios_data:
+    for i, (nom, ape, mail, tdoc, ndoc, dom, tel) in enumerate(propietarios_data):
         p = db.get_propietario_by_doc(tdoc, ndoc)
+        agente_asignado = agentes_list[i % len(agentes_list)]
         if not p:
-            p = controller.registrar_propietario(nom, ape, mail, tdoc, ndoc, dom, tel)
-            print(f" [+] Propietario creado: {p.nombre_completo}")
+            p = controller.registrar_propietario(
+                nom, ape, mail, tdoc, ndoc, dom, tel, id_agente=agente_asignado.id
+            )
+            print(f" [+] Propietario creado: {p.nombre_completo} (Asignado a {agente_asignado.nombre})")
         propietarios_list.append(p)
 
     # 3. Clientes / Inquilinos
@@ -81,11 +85,14 @@ def seed_large_dataset():
     ]
 
     clientes_list = []
-    for nom, ape, mail, tdoc, ndoc, dom, tel in clientes_data:
+    for i, (nom, ape, mail, tdoc, ndoc, dom, tel) in enumerate(clientes_data):
         c = db.get_cliente_by_doc(tdoc, ndoc)
+        agente_asignado = agentes_list[i % len(agentes_list)]
         if not c:
-            c = controller.registrar_cliente(nom, ape, mail, tdoc, ndoc, dom, tel)
-            print(f" [+] Cliente creado: {c.nombre_completo}")
+            c = controller.registrar_cliente(
+                nom, ape, mail, tdoc, ndoc, dom, tel, id_agente=agente_asignado.id
+            )
+            print(f" [+] Cliente creado: {c.nombre_completo} (Asignado a {agente_asignado.nombre})")
         clientes_list.append(c)
 
     # 4. Propiedades
