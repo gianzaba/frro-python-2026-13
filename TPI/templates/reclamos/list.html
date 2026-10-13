@@ -22,33 +22,33 @@
 
 <!-- KPIs -->
 <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom: 1.5rem;">
-    <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
-            <i class="bi bi-exclamation-octagon-fill"></i>
+    <div class="stat-card stat-primary">
+        <div class="stat-header">
+            <span class="stat-label">Total de Reclamos</span>
+            <div class="stat-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
         </div>
-        <div class="stat-value">{{ total_reclamos }}</div>
-        <div class="stat-label">Total de Reclamos</div>
+        <div class="stat-value" style="color: #4f46e5;">{{ total_reclamos }}</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">
-            <i class="bi bi-clock-history"></i>
+    <div class="stat-card stat-danger">
+        <div class="stat-header">
+            <span class="stat-label">Pendientes de Acción</span>
+            <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
         </div>
-        <div class="stat-value">{{ total_pendientes }}</div>
-        <div class="stat-label">Pendientes de Acción</div>
+        <div class="stat-value" style="color: #e11d48;">{{ total_pendientes }}</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
-            <i class="bi bi-wrench-adjustable"></i>
+    <div class="stat-card stat-warning">
+        <div class="stat-header">
+            <span class="stat-label">En Reparación / Notificado</span>
+            <div class="stat-icon"><i class="bi bi-wrench-adjustable"></i></div>
         </div>
-        <div class="stat-value">{{ total_en_reparacion }}</div>
-        <div class="stat-label">En Reparación / Notificado</div>
+        <div class="stat-value" style="color: #d97706;">{{ total_en_reparacion }}</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
-            <i class="bi bi-currency-dollar"></i>
+    <div class="stat-card stat-success">
+        <div class="stat-header">
+            <span class="stat-label">Presupuesto Acumulado</span>
+            <div class="stat-icon"><i class="bi bi-currency-dollar"></i></div>
         </div>
-        <div class="stat-value">${{ "{:,.2f}".format(total_presupuesto) }}</div>
-        <div class="stat-label">Presupuesto Acumulado</div>
+        <div class="stat-value" style="color: #059669;">${{ "{:,.2f}".format(total_presupuesto) }}</div>
     </div>
 </div>
 

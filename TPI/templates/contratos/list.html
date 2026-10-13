@@ -42,7 +42,7 @@
             </div>
             <div class="form-group">
                 <label for="estado-filter"><i class="bi bi-check-circle"></i> Estado</label>
-                <select id="estado-filter" class="form-control" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                <select id="estado-filter" class="form-control" style="width: 100%;">
                     <option value="">Todos los estados</option>
                 </select>
             </div>
@@ -76,7 +76,7 @@
                     </td>
                     <td>
                         {% if item.propiedad %}
-                            <div style="font-weight: 600; color: #ffffff;">{{ item.propiedad.direccion }}</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">{{ item.propiedad.direccion }}</div>
                             <span style="font-size: 0.76rem; color: var(--text-muted);">{{ item.propiedad.zona }}</span>
                         {% else %}
                             <span style="color: var(--text-muted); font-style: italic;">Propiedad eliminada</span>

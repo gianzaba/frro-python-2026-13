@@ -35,7 +35,7 @@
                 </select>
                 {% else %}
                 <div class="alert alert-warning" style="margin-top: 0.5rem;">
-                    <i class="bi bi-exclamation-triangle"></i> No hay clientes registrados. <a href="{{ url_for('views.cliente_crear') }}" style="color: #ffffff; font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">Registrar cliente</a>
+                    <i class="bi bi-exclamation-triangle"></i> No hay clientes registrados. <a href="{{ url_for('views.cliente_crear') }}" style="color: var(--primary); font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">Registrar cliente</a>
                 </div>
                 {% endif %}
             </div>
@@ -53,7 +53,7 @@
                 </select>
                 {% else %}
                 <div class="alert alert-warning" style="margin-top: 0.5rem;">
-                    <i class="bi bi-exclamation-triangle"></i> No hay propiedades disponibles con agentes asignados. Debes <a href="{{ url_for('views.propiedades_list') }}" style="color: #ffffff; font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">asignar un agente</a> primero.
+                    <i class="bi bi-exclamation-triangle"></i> No hay propiedades disponibles con agentes asignados. Debes <a href="{{ url_for('views.propiedades_list') }}" style="color: var(--primary); font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">asignar un agente</a> primero.
                 </div>
                 {% endif %}
             </div>

@@ -67,7 +67,7 @@
             <span class="stat-label">Cobrado en el Mes</span>
             <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
         </div>
-        <div class="stat-value" style="color: #34d399;">${{ "{:,.2f}".format(stats.cobrado_mes) }}</div>
+        <div class="stat-value" style="color: #059669;">${{ "{:,.2f}".format(stats.cobrado_mes) }}</div>
     </div>
     
     <div class="stat-card stat-danger">
@@ -75,7 +75,7 @@
             <span class="stat-label">Pendiente de Cobro</span>
             <div class="stat-icon"><i class="bi bi-exclamation-octagon"></i></div>
         </div>
-        <div class="stat-value" style="color: #f87171;">${{ "{:,.2f}".format(stats.pendiente_cobrar_mes) }}</div>
+        <div class="stat-value" style="color: #e11d48;">${{ "{:,.2f}".format(stats.pendiente_cobrar_mes) }}</div>
     </div>
 
     <div class="stat-card stat-warning">
@@ -83,7 +83,7 @@
             <span class="stat-label">A Pagar a Dueños</span>
             <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
         </div>
-        <div class="stat-value" style="color: #fbbf24;">${{ "{:,.2f}".format(stats.pendiente_pagar_propietario) }}</div>
+        <div class="stat-value" style="color: #d97706;">${{ "{:,.2f}".format(stats.pendiente_pagar_propietario) }}</div>
     </div>
 
     <div class="stat-card stat-primary">
@@ -91,7 +91,7 @@
             <span class="stat-label">Comisiones Acumuladas</span>
             <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
         </div>
-        <div class="stat-value" style="color: #a5b4fc;">${{ "{:,.2f}".format(stats.comisiones) }}</div>
+        <div class="stat-value" style="color: #4f46e5;">${{ "{:,.2f}".format(stats.comisiones) }}</div>
     </div>
 </div>
 
@@ -100,18 +100,18 @@
     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
         <div>
             <h3 style="font-size: 1.05rem; display: flex; align-items: center; gap: 0.45rem;">
-                <i class="bi bi-pie-chart-fill" style="color: #818cf8;"></i> Eficiencia de Recaudación Locativa
+                <i class="bi bi-pie-chart-fill" style="color: #4f46e5;"></i> Eficiencia de Recaudación Locativa
             </h3>
             <span style="color: var(--text-secondary); font-size: 0.85rem;">
                 ${{ "{:,.2f}".format(stats.cobrado_mes) }} cobrados de ${{ "{:,.2f}".format(stats.cobrado_mes + stats.pendiente_cobrar_mes) }} proyectados
             </span>
         </div>
-        <div style="font-size: 2rem; font-weight: 800; color: #34d399; line-height: 1;">
+        <div style="font-size: 2rem; font-weight: 800; color: #059669; line-height: 1;">
             {{ stats.cobro_eficiencia }}%
         </div>
     </div>
-    <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.06); border-radius: 20px; overflow: hidden; border: 1px solid var(--card-border);">
-        <div style="width: {{ stats.cobro_eficiencia }}%; height: 100%; background: linear-gradient(90deg, #6366f1 0%, #34d399 100%); border-radius: 20px; transition: width 0.8s ease-in-out;"></div>
+    <div style="width: 100%; height: 10px; background: #f1f5f9; border-radius: 20px; overflow: hidden; border: 1px solid var(--card-border);">
+        <div style="width: {{ stats.cobro_eficiencia }}%; height: 100%; background: linear-gradient(90deg, #4f46e5 0%, #059669 100%); border-radius: 20px; transition: width 0.8s ease-in-out;"></div>
     </div>
 </div>
 
@@ -147,7 +147,7 @@
                         <td><strong>#{{ item.contrato.nro_contrato }}</strong></td>
                         <td>{{ item.cliente.nombre_completo }}</td>
                         <td>{{ item.propiedad.direccion }}</td>
-                        <td><span style="color: #f87171; font-weight: 700;">${{ "{:,.2f}".format(item.contrato.monto) }}</span></td>
+                        <td><span style="color: #e11d48; font-weight: 700;">${{ "{:,.2f}".format(item.contrato.monto) }}</span></td>
                         <td>
                             <a href="{{ url_for('views.finanzas_dashboard') }}" class="btn btn-sm btn-primary">
                                 <i class="bi bi-plus-lg"></i> Cargar
@@ -249,15 +249,15 @@
             </div>
             <div style="display: flex; justify-content: space-between; padding-left: 0.75rem; color: var(--text-secondary);">
                 <span>• Disponibles:</span>
-                <strong style="color: #34d399;">{{ stats.disponibles }}</strong>
+                <strong style="color: #059669;">{{ stats.disponibles }}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; padding-left: 0.75rem; color: var(--text-secondary);">
                 <span>• Alquiladas:</span>
-                <strong style="color: #818cf8;">{{ stats.alquiladas }}</strong>
+                <strong style="color: #4f46e5;">{{ stats.alquiladas }}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; padding-left: 0.75rem; color: var(--text-secondary);">
                 <span>• Vendidas:</span>
-                <strong style="color: #f472b6;">{{ stats.vendidas }}</strong>
+                <strong style="color: #be185d;">{{ stats.vendidas }}</strong>
             </div>
             <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 0.3rem 0;">
             <div style="display: flex; justify-content: space-between; align-items: center;">

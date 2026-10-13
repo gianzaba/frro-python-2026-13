@@ -26,13 +26,13 @@
             <tbody>
                 {% if logs %}
                     {% for item in logs %}
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='none'">
-                        <td style="padding: 0.85rem 1rem; color: #ffffff; white-space: nowrap;">
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
+                        <td style="padding: 0.85rem 1rem; color: var(--text-primary); white-space: nowrap;">
                             {{ item.log.fecha_hora.strftime('%d/%m/%Y %H:%M:%S') }}
                         </td>
                         <td style="padding: 0.85rem 1rem;">
                             {% if item.agente %}
-                                <strong style="color: #f1f5f9;">{{ item.agente.nombre_completo }}</strong>
+                                <strong style="color: var(--text-primary);">{{ item.agente.nombre_completo }}</strong>
                                 <div style="font-size: 0.76rem; color: var(--text-secondary);">{{ item.agente.rol }}</div>
                             {% else %}
                                 <span style="color: var(--text-muted); font-style: italic;">Sistema</span>

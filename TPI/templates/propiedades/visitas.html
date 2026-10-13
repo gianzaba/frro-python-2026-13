@@ -31,8 +31,8 @@
     <div class="card" style="margin-bottom: 0; border: 1px solid {% if item.cupo_disponible == 0 %}rgba(239, 68, 68, 0.4){% else %}rgba(99, 102, 241, 0.3){% endif %};">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem;">
             <div>
-                <h3 style="font-size: 1.1rem; color: #ffffff; display: flex; align-items: center; gap: 0.45rem;">
-                    <i class="bi bi-calendar-check" style="color: #818cf8;"></i> {{ item.agenda.fecha_hora_visita.strftime('%d/%m/%Y a las %H:%M hs') }}
+                <h3 style="font-size: 1.1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.45rem;">
+                    <i class="bi bi-calendar-check" style="color: #6366f1;"></i> {{ item.agenda.fecha_hora_visita.strftime('%d/%m/%Y a las %H:%M hs') }}
                 </h3>
                 <div style="font-size: 0.84rem; color: var(--text-secondary); margin-top: 0.2rem;">
                     Duración estimada: <strong>{{ item.agenda.duracion_minutos }} min</strong> | Agente: <strong>{{ item.agente.nombre_completo if item.agente else 'Asignado' }}</strong>
@@ -55,22 +55,22 @@
                 <span>Cupo ocupado: <strong>{{ item.total_inscriptos }} / {{ item.agenda.cupo_maximo }}</strong> visitantes</span>
                 <span>{% if item.cupo_disponible > 0 %}{{ item.cupo_disponible }} disponible(s){% else %}Agotado{% endif %}</span>
             </div>
-            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; border: 1px solid var(--card-border);">
-                <div style="width: {{ (item.total_inscriptos / item.agenda.cupo_maximo) * 100 }}%; height: 100%; background: {% if item.cupo_disponible == 0 %}#f87171{% else %}linear-gradient(90deg, #6366f1, #34d399){% endif %};"></div>
+            <div style="width: 100%; height: 8px; background: #f1f5f9; border-radius: 10px; overflow: hidden; border: 1px solid var(--card-border);">
+                <div style="width: {{ (item.total_inscriptos / item.agenda.cupo_maximo) * 100 }}%; height: 100%; background: {% if item.cupo_disponible == 0 %}#f87171{% else %}linear-gradient(90deg, #6366f1, #10b981){% endif %};"></div>
             </div>
         </div>
 
         <!-- Inscriptos List -->
-        <div style="background: rgba(15, 23, 42, 0.6); padding: 0.9rem; border-radius: var(--border-radius-sm); border: 1px solid var(--card-border); margin-bottom: 1rem;">
+        <div style="background: #f8fafc; padding: 0.9rem; border-radius: var(--border-radius-sm); border: 1px solid var(--card-border); margin-bottom: 1rem;">
             <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem;">
                 Visitantes Confirmados ({{ item.inscriptos|length }})
             </div>
             {% if item.inscriptos %}
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 {% for insc in item.inscriptos %}
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 0.35rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.35rem;">
                     <div>
-                        <strong style="color: #ffffff;">{{ insc.nombre_visitante }}</strong>
+                        <strong style="color: var(--text-primary);">{{ insc.nombre_visitante }}</strong>
                         <div style="font-size: 0.78rem; color: var(--text-secondary);">
                             <i class="bi bi-telephone"></i> {{ insc.telefono_visitante }} {% if insc.email_visitante %}| <i class="bi bi-envelope"></i> {{ insc.email_visitante }}{% endif %}
                         </div>

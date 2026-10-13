@@ -50,7 +50,7 @@
                 </select>
                 {% else %}
                 <div class="alert alert-warning" style="margin-top: 0.5rem;">
-                    <i class="bi bi-exclamation-triangle"></i> No hay propietarios registrados en el sistema. Debes <a href="{{ url_for('views.propietario_crear') }}" style="color: #ffffff; font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">registrar un propietario</a> primero.
+                    <i class="bi bi-exclamation-triangle"></i> No hay propietarios registrados en el sistema. Debes <a href="{{ url_for('views.propietario_crear') }}" style="color: var(--primary); font-weight: 700; text-decoration: underline; margin-left: 0.3rem;">registrar un propietario</a> primero.
                 </div>
                 {% endif %}
             </div>

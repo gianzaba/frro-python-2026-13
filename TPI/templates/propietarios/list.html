@@ -44,7 +44,7 @@
                 <tr>
                     <td><strong>#{{ p.id }}</strong></td>
                     <td><span class="badge badge-admin" style="font-size: 0.72rem;">{{ p.tipo_doc }} {{ p.nro_doc }}</span></td>
-                    <td style="font-weight: 600; color: #ffffff;">{{ p.nombre_completo }}</td>
+                    <td style="font-weight: 600; color: var(--text-primary);">{{ p.nombre_completo }}</td>
                     {% if es_admin %}
                     <td>
                         {% if item.agente %}

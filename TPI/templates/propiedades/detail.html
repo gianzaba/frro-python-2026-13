@@ -23,41 +23,41 @@
 <div class="card" style="border: 1px solid rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(99, 102, 241, 0.05)); margin-bottom: 1.5rem; padding: 1.2rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div>
-            <h3 style="color: #34d399; margin-bottom: 0.3rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
+            <h3 style="color: #059669; margin-bottom: 0.3rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
                 <i class="bi bi-patch-check-fill"></i> Inmueble Vendido - Gestión de Nuevo Propietario
             </h3>
-            <p style="color: var(--text-muted); font-size: 0.92rem; margin: 0;">
-                Esta propiedad fue vendida a <strong style="color: #ffffff;">{{ comprador.nombre_completo }}</strong> ({{ comprador.tipo_doc }} {{ comprador.nro_doc }}) mediante el <strong>Contrato de Compraventa #{{ contrato_venta.nro_contrato }}</strong>.
+            <p style="color: var(--text-secondary); font-size: 0.92rem; margin: 0;">
+                Esta propiedad fue vendida a <strong style="color: var(--text-primary);">{{ comprador.nombre_completo }}</strong> ({{ comprador.tipo_doc }} {{ comprador.nro_doc }}) mediante el <strong>Contrato de Compraventa #{{ contrato_venta.nro_contrato }}</strong>.
                 ¿Deseas registrar al comprador como nuevo propietario y reactivar el inmueble para su comercialización?
             </p>
         </div>
-        <button type="button" class="btn btn-primary" onclick="openTraspasoModal()" style="background: linear-gradient(135deg, #059669, #10b981); border: none; white-space: nowrap; font-weight: 600;">
+        <button type="button" class="btn btn-primary" onclick="openTraspasoModal()" style="background: #059669; border: none; white-space: nowrap; font-weight: 600;">
             <i class="bi bi-arrow-repeat"></i> Traspasar Titularidad al Comprador
         </button>
     </div>
 </div>
 
 <!-- Modal Traspaso Titularidad -->
-<div id="traspasoModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
-    <div style="background: #181926; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; width: 100%; max-width: 520px; padding: 1.8rem; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.8rem;">
-            <h3 style="color: #34d399; margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+<div id="traspasoModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 2000; padding: 1rem;">
+    <div style="background: #ffffff; border: 1px solid var(--card-border); border-radius: 16px; width: 100%; max-width: 520px; padding: 1.8rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.8rem;">
+            <h3 style="color: #059669; margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
                 <i class="bi bi-arrow-repeat"></i> Traspaso de Titularidad
             </h3>
             <button type="button" onclick="closeTraspasoModal()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
         </div>
         <form action="{{ url_for('views.propiedad_traspasar_titularidad', id_propiedad=p.id) }}" method="POST">
             <div style="margin-bottom: 1.2rem;">
-                <p style="font-size: 0.95rem; margin-bottom: 0.8rem;">Al confirmar esta acción:</p>
-                <ul style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; padding-left: 1.2rem; margin: 0 0 1.2rem 0;">
-                    <li>El cliente comprador <strong style="color: #ffffff;">{{ comprador.nombre_completo }}</strong> será incorporado como <strong>Propietario</strong> del inmueble en el sistema.</li>
+                <p style="font-size: 0.95rem; margin-bottom: 0.8rem; color: var(--text-primary);">Al confirmar esta acción:</p>
+                <ul style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6; padding-left: 1.2rem; margin: 0 0 1.2rem 0;">
+                    <li>El cliente comprador <strong style="color: var(--text-primary);">{{ comprador.nombre_completo }}</strong> será incorporado como <strong>Propietario</strong> del inmueble en el sistema.</li>
                     <li>El contrato de compraventa actual quedará <strong>finalizado</strong> para proteger el histórico contable y legal del vendedor original.</li>
-                    <li>La propiedad volverá a estar en estado <strong style="color: #34d399;">disponible</strong> para que puedas asignarle agente y gestionar nuevos contratos.</li>
+                    <li>La propiedad volverá a estar en estado <strong style="color: #059669;">disponible</strong> para que puedas asignarle agente y gestionar nuevos contratos.</li>
                 </ul>
 
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label for="nuevo_tipo" class="form-label" style="font-weight: 600; margin-bottom: 0.4rem; display: block;">Destino comercial para la nueva etapa:</label>
-                    <select name="nuevo_tipo" id="nuevo_tipo" class="form-control" style="width: 100%; background: #222436; color: #ffffff; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 0.6rem;">
+                    <select name="nuevo_tipo" id="nuevo_tipo" class="form-control" style="width: 100%;">
                         <option value="Alquiler" selected>Alquiler (Poner la propiedad en renta)</option>
                         <option value="Venta">Venta (Ponerla nuevamente en venta)</option>
                     </select>
@@ -65,7 +65,7 @@
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.8rem;">
                 <button type="button" class="btn btn-secondary" onclick="closeTraspasoModal()">Cancelar</button>
-                <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #059669, #10b981); border: none;">
+                <button type="submit" class="btn btn-primary" style="background: #059669; border: none;">
                     <i class="bi bi-check-circle-fill"></i> Confirmar Traspaso
                 </button>
             </div>

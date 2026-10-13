@@ -46,7 +46,7 @@
             </div>
             <div class="form-group">
                 <label for="estado-filter"><i class="bi bi-check-circle"></i> Estado</label>
-                <select id="estado-filter" class="form-control" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                <select id="estado-filter" class="form-control" style="width: 100%;">
                     <option value="">Todos los estados</option>
                     <option value="disponible">Disponible</option>
                     <option value="alquilada">Alquilada</option>
@@ -55,7 +55,7 @@
             </div>
             <div class="form-group">
                 <label for="tipo-filter"><i class="bi bi-building"></i> Tipo de Inmueble</label>
-                <select id="tipo-filter" class="form-control" style="width: 100%; height: 38px; background: #0f172a; color: #fff; border: 1px solid var(--card-border); border-radius: 6px; padding: 0 0.5rem; font-size: 0.85rem;">
+                <select id="tipo-filter" class="form-control" style="width: 100%;">
                     <option value="">Todos los tipos</option>
                 </select>
             </div>
@@ -81,7 +81,7 @@
                 {% for item in propiedades %}
                 <tr>
                     <td><strong>#{{ item.propiedad.id }}</strong></td>
-                    <td style="font-weight: 600; color: #ffffff;">{{ item.propiedad.direccion }}</td>
+                    <td style="font-weight: 600; color: var(--text-primary);">{{ item.propiedad.direccion }}</td>
                     <td>
                         <span class="badge badge-admin" style="font-size: 0.7rem;">
                             {{ item.propiedad.tipo }}
