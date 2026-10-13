@@ -59,6 +59,7 @@
                     <th>Propiedad</th>
                     <th>Inquilino / Cliente</th>
                     <th>Agente Realizador</th>
+                    <th>Monto de Operación</th>
                     <th>Comisión Agente</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -88,6 +89,10 @@
                         </span>
                     </td>
                     <td>
+                        <div style="font-weight: 700; color: #60a5fa;">${{ "%.2f"|format(item.contrato.monto) }}</div>
+                        <span style="font-size: 0.72rem; color: var(--text-muted);">{{ 'Alquiler mensual' if item.contrato.tipo_contrato == 'Alquiler' else 'Precio de venta' }}</span>
+                    </td>
+                    <td>
                         <div style="font-weight: 700; color: #34d399;">${{ "%.2f"|format(item.contrato.monto_comision_agente) }}</div>
                         <span style="font-size: 0.72rem; color: var(--text-muted);">({{ item.contrato.comision_porcentaje }}% honorario)</span>
                     </td>
@@ -109,12 +114,15 @@
                             <a href="{{ url_for('views.contrato_imprimir', nro_contrato=item.contrato.nro_contrato) }}" class="btn btn-secondary btn-sm" target="_blank" title="Imprimir Contrato Legal">
                                 <i class="bi bi-printer"></i>
                             </a>
-                            {% if item.contrato.estado == 'solicitado' %}
+                            {% if item.contrato.estado in ['solicitado', 'aprobado'] %}
                             <form action="{{ url_for('views.contrato_firmar', nro_contrato=item.contrato.nro_contrato) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Confirmás la firma del contrato? Una vez firmado, el contrato y sus cláusulas quedarán bloqueados e inmutables.');">
                                 <button type="submit" class="btn btn-success btn-sm" title="Firmar y Celebrar Contrato">
                                     <i class="bi bi-pen"></i> Firmar
                                 </button>
                             </form>
+                            {% endif %}
+                            {% if item.contrato.estado == 'pendiente_aprobacion' %}
+                            <span class="badge badge-warning">Pendiente del propietario</span>
                             {% endif %}
                         </div>
                     </td>
@@ -158,7 +166,7 @@ $(document).ready(function() {
             propiedades.add(cellProp);
         }
 
-        var cellEstado = $(this.node()).find('td').eq(6).text().trim();
+        var cellEstado = $(this.node()).find('td').eq(7).text().trim();
         if (cellEstado) {
             estados.add(cellEstado);
         }
@@ -185,7 +193,7 @@ $(document).ready(function() {
     });
 
     $('#estado-filter').on('change', function() {
-        table.column(6).search(this.value).draw();
+        table.column(7).search(this.value).draw();
     });
 });
 </script>

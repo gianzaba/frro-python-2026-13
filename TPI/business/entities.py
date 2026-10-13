@@ -43,6 +43,7 @@ class Cliente(Persona):
         email: str = "",
         contrasegna_hash: str = "",
         id_agente: Optional[int] = None,
+        id_agente_creador: Optional[int] = None,
     ):
         super().__init__(
             id=id,
@@ -55,7 +56,8 @@ class Cliente(Persona):
             email=email,
             contrasegna_hash=contrasegna_hash,
         )
-        self.id_agente = id_agente
+        self.id_agente = id_agente_creador if id_agente_creador is not None else id_agente
+        self.id_agente_creador = self.id_agente
 
 
 class Propietario(Persona):
@@ -71,6 +73,7 @@ class Propietario(Persona):
         email: str = "",
         contrasegna_hash: str = "",
         id_agente: Optional[int] = None,
+        id_agente_creador: Optional[int] = None,
     ):
         super().__init__(
             id=id,
@@ -83,7 +86,8 @@ class Propietario(Persona):
             email=email,
             contrasegna_hash=contrasegna_hash,
         )
-        self.id_agente = id_agente
+        self.id_agente = id_agente_creador if id_agente_creador is not None else id_agente
+        self.id_agente_creador = self.id_agente
 
 
 class Agente(Persona):
@@ -154,6 +158,13 @@ class Contrato:
         tipo_contrato: str = "Alquiler",
         ruta_documento_respaldo: Optional[str] = None,
         fecha_ultimo_aviso_mora: Optional[date] = None,
+        recibos_sueldo_detalle: str = "",
+        garantias_detalle: str = "",
+        ruta_recibos_sueldo: Optional[str] = None,
+        ruta_garantias: Optional[str] = None,
+        decision_propietario: str = "pendiente",
+        fecha_decision_propietario: Optional[date] = None,
+        observaciones_propietario: str = "",
     ):
         self.nro_contrato = nro_contrato
         self.fecha_solicitud = fecha_solicitud or date.today()
@@ -168,6 +179,13 @@ class Contrato:
         self.tipo_contrato = tipo_contrato
         self.ruta_documento_respaldo = ruta_documento_respaldo
         self.fecha_ultimo_aviso_mora = fecha_ultimo_aviso_mora
+        self.recibos_sueldo_detalle = recibos_sueldo_detalle
+        self.garantias_detalle = garantias_detalle
+        self.ruta_recibos_sueldo = ruta_recibos_sueldo
+        self.ruta_garantias = ruta_garantias
+        self.decision_propietario = decision_propietario
+        self.fecha_decision_propietario = fecha_decision_propietario
+        self.observaciones_propietario = observaciones_propietario
 
     @property
     def monto_honorarios_totales(self) -> float:

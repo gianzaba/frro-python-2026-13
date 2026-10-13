@@ -9,7 +9,7 @@
         <p class="subtitle">Desglose contractual, cláusulas jurídicas e inmutabilidad legal</p>
     </div>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-        {% if contrato.estado == 'solicitado' %}
+        {% if contrato.estado in ['solicitado', 'aprobado'] %}
         <form action="{{ url_for('views.contrato_firmar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Confirmás la firma del contrato? Una vez firmado, el contrato y sus cláusulas quedarán bloqueados e inmutables.');">
             <button type="submit" class="btn btn-success">
                 <i class="bi bi-pen-fill"></i> Firmar y Activar Contrato
@@ -44,6 +44,27 @@
     </div>
     <span class="badge badge-activo" style="font-size: 0.85rem; padding: 0.4rem 0.9rem;">
         <i class="bi bi-lock-fill"></i> Estado: Firmado
+    </span>
+</div>
+{% endif %}
+
+{% if contrato.estado == 'rechazado' %}
+<div class="card" style="border: 1px solid rgba(239, 68, 68, 0.45); background: rgba(127, 29, 29, 0.2); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.8rem;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(239, 68, 68, 0.2); display: flex; align-items: center; justify-content: center; color: #f87171; font-size: 1.4rem;">
+            <i class="bi bi-x-circle-fill"></i>
+        </div>
+        <div>
+            <h3 style="margin: 0; font-size: 1.05rem; color: #f87171;">
+                OFERTA RECHAZADA POR EL PROPIETARIO{% if contrato.fecha_decision_propietario %} EL {{ contrato.fecha_decision_propietario.strftime('%d/%m/%Y') }}{% endif %}
+            </h3>
+            <p style="margin: 0.2rem 0 0 0; font-size: 0.84rem; color: var(--text-primary);">
+                La operación no puede avanzar a la firma con esta decisión.
+            </p>
+        </div>
+    </div>
+    <span class="badge badge-rechazado" style="font-size: 0.85rem; padding: 0.4rem 0.9rem;">
+        <i class="bi bi-x-octagon-fill"></i> Estado: Rechazado
     </span>
 </div>
 {% endif %}
@@ -95,44 +116,81 @@
         </div>
     </div>
 
+    <div class="card">
+        <h2><i class="bi bi-shield-check" style="color: #f59e0b;"></i> Evaluación del propietario</h2>
+        <p class="subtitle">El agente informa al propietario la oferta, los recibos y las garantías antes de avanzar.</p>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span class="detail-label">Recibos y datos laborales</span>
+                <span class="detail-value">{{ contrato.recibos_sueldo_detalle or 'No informados' }}</span>
+                {% if contrato.ruta_recibos_sueldo %}<a href="/{{ contrato.ruta_recibos_sueldo }}" target="_blank">Ver recibos adjuntos</a>{% endif %}
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Garantías y datos</span>
+                <span class="detail-value">{{ contrato.garantias_detalle or 'No informadas' }}</span>
+                {% if contrato.ruta_garantias %}<a href="/{{ contrato.ruta_garantias }}" target="_blank">Ver garantías adjuntas</a>{% endif %}
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Decisión</span>
+                <span class="detail-value">{{ contrato.decision_propietario }}</span>
+                {% if contrato.fecha_decision_propietario %}<small>{{ contrato.fecha_decision_propietario.strftime('%d/%m/%Y') }}</small>{% endif %}
+            </div>
+        </div>
+        {% if contrato.estado in ['pendiente_aprobacion', 'solicitado'] %}
+        <form action="{{ url_for('views.contrato_decision_propietario', nro_contrato=contrato.nro_contrato) }}" method="POST" style="margin-top: 1rem;">
+            <div class="form-group">
+                <label for="observaciones_propietario">Observaciones del propietario</label>
+                <textarea id="observaciones_propietario" name="observaciones_propietario" rows="3" placeholder="Condiciones, aclaraciones o motivo del rechazo"></textarea>
+            </div>
+            <div style="display: flex; gap: 0.8rem; margin-top: 0.8rem;">
+                <button type="submit" name="decision" value="aprobar" class="btn btn-success"><i class="bi bi-check-circle"></i> Aprobar oferta</button>
+                <button type="submit" name="decision" value="rechazar" class="btn btn-danger"><i class="bi bi-x-circle"></i> Rechazar oferta</button>
+            </div>
+        </form>
+        {% elif contrato.observaciones_propietario %}
+        <p style="margin-top: 1rem;"><strong>Observaciones:</strong> {{ contrato.observaciones_propietario }}</p>
+        {% endif %}
+    </div>
+
     <!-- Módulo de Honorarios e Inmobiliaria -->
     <div class="card">
         <h2 style="margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.45rem;">
             <i class="bi bi-wallet-fill" style="color: #c084fc;"></i> Desglose Interno de Honorarios
         </h2>
         <p class="subtitle" style="margin-bottom: 1.1rem;">
-            Distribución contable interna entre la Inmobiliaria y el Agente.
+            ⚠️ <strong>IMPORTANTE:</strong> Esta sección muestra solo la distribución interna de comisiones (lo que gana el agente vs. inmobiliaria). El Monto de Operación (${{ "%.2f"|format(contrato.monto) }}) permanece íntegro y no se ve afectado por estos porcentajes.
         </p>
 
         <div style="padding: 0.9rem 1.1rem; background: rgba(99, 102, 241, 0.1); border-radius: var(--border-radius-sm); margin-bottom: 1rem; border-left: 4px solid var(--primary);">
-            <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Honorarios Totales de Operación</div>
+            <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Honorarios Totales (Comisión Inmobiliaria)</div>
             <div style="font-size: 1.35rem; font-weight: 800; color: #a5b4fc; margin-top: 0.15rem;">
-                ${{ "%.2f"|format(monto_honorarios_totales) }} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">({{ contrato.comision_porcentaje }}%)</span>
+                ${{ "%.2f"|format(monto_honorarios_totales) }} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">({{ contrato.comision_porcentaje }}% del monto)</span>
             </div>
+            <small style="color: var(--text-muted); display: block; margin-top: 0.4rem;">Esto es lo que el cliente paga por los servicios inmobiliarios, distribuido entre agente e inmobiliaria.</small>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.2rem;">
             <div style="padding: 0.8rem; background: rgba(255,255,255,0.03); border-radius: var(--border-radius-sm); border: 1px solid var(--card-border); border-top: 3px solid #10b981;">
-                <div style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Agente Interviniente</div>
+                <div style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Comisión del Agente</div>
                 <div style="font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-top: 0.2rem;">👤 {{ agente.nombre_completo if agente else 'N/A' }}</div>
                 <div style="font-size: 1.1rem; font-weight: 800; color: #34d399; margin-top: 0.2rem;">
                     ${{ "%.2f"|format(monto_comision_agente) }}
                 </div>
-                <small style="color: var(--text-muted);">Comisión: {{ contrato.comision_agente_porcentaje }}%</small>
+                <small style="color: var(--text-muted);">{{ contrato.comision_agente_porcentaje }}% del total de honorarios</small>
             </div>
 
             <div style="padding: 0.8rem; background: rgba(255,255,255,0.03); border-radius: var(--border-radius-sm); border: 1px solid var(--card-border); border-top: 3px solid #6366f1;">
-                <div style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Neto Inmobiliaria</div>
+                <div style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Parte para Inmobiliaria</div>
                 <div style="font-size: 0.86rem; font-weight: 600; color: var(--text-primary); margin-top: 0.2rem;">🏢 InmoGestión</div>
                 <div style="font-size: 1.1rem; font-weight: 800; color: #818cf8; margin-top: 0.2rem;">
                     ${{ "%.2f"|format(monto_comision_inmobiliaria) }}
                 </div>
-                <small style="color: var(--text-muted);">Retención neta</small>
+                <small style="color: var(--text-muted);">Lo que retiene la inmobiliaria</small>
             </div>
         </div>
 
-        {% if contrato.estado == 'solicitado' %}
-        <form action="{{ url_for('views.contrato_comision_actualizar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="border-top: 1px solid var(--card-border); padding-top: 0.9rem;" onsubmit="return confirm('¿Confirmar la actualización de los porcentajes de comisión y distribución del agente comercial?');">
+        {% if contrato.estado in ['solicitado', 'aprobado'] %}
+        <form action="{{ url_for('views.contrato_comision_actualizar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="border-top: 1px solid var(--card-border); padding-top: 0.9rem;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.8rem;">
                 <div class="form-group">
                     <label for="comision_porcentaje">% Honorarios Totales</label>
@@ -185,7 +243,7 @@
                 </h3>
                 {% if contrato.estado == 'solicitado' %}
                 <div style="display: flex; gap: 0.4rem;">
-                    <button type="button" onclick="toggleEditForm({{ cl.id }})" class="btn btn-secondary btn-sm">
+                    <button type="button" onclick="toggleEditForm('{{ cl.id }}')" class="btn btn-secondary btn-sm">
                         <i class="bi bi-pencil-square"></i> Editar
                     </button>
                     <form action="{{ url_for('views.clausula_eliminar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Seguro que querés quitar esta cláusula del contrato?');">
@@ -204,7 +262,7 @@
 
             {% if contrato.estado == 'solicitado' %}
             <!-- Formulario de edición (oculto por defecto) -->
-            <form id="clausula-edit-{{ cl.id }}" action="{{ url_for('views.clausula_editar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: none; margin-top: 1rem; background: rgba(30, 41, 59, 0.7); padding: 1.1rem; border-radius: var(--border-radius-sm); border: 1px solid rgba(99, 102, 241, 0.3);" onsubmit="return confirm('¿Confirmar los cambios realizados en esta cláusula?');">
+            <form id="clausula-edit-{{ cl.id }}" action="{{ url_for('views.clausula_editar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: none; margin-top: 1rem; background: rgba(30, 41, 59, 0.7); padding: 1.1rem; border-radius: var(--border-radius-sm); border: 1px solid rgba(99, 102, 241, 0.3);">
                 <div class="form-group" style="margin-bottom: 0.8rem;">
                     <label>Título de la Cláusula</label>
                     <input type="text" name="titulo" value="{{ cl.titulo }}" required>
@@ -215,7 +273,7 @@
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
                     <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check2"></i> Guardar Cambios</button>
-                    <button type="button" onclick="toggleEditForm({{ cl.id }})" class="btn btn-secondary btn-sm">Cancelar</button>
+                    <button type="button" onclick="toggleEditForm('{{ cl.id }}')" class="btn btn-secondary btn-sm">Cancelar</button>
                 </div>
             </form>
             {% endif %}
@@ -229,7 +287,7 @@
         <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.45rem;">
             <i class="bi bi-plus-circle-fill" style="color: #818cf8;"></i> Añadir Nueva Cláusula al Contrato
         </h3>
-        <form action="{{ url_for('views.clausula_agregar', nro_contrato=contrato.nro_contrato) }}" method="POST" onsubmit="return confirm('¿Confirmar el agregado de esta nueva cláusula al contrato?');">
+        <form action="{{ url_for('views.clausula_agregar', nro_contrato=contrato.nro_contrato) }}" method="POST">
             <div class="form-group" style="margin-bottom: 1rem;">
                 <label for="titulo">Título de la Cláusula</label>
                 <input type="text" id="titulo" name="titulo" placeholder="Ej: OCTAVA (DEPÓSITO EN GARANTÍA)" required>
