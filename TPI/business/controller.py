@@ -21,6 +21,8 @@ from business.entities import (
     InscripcionVisita as InscripcionVisitaBO,
     Reclamo as ReclamoBO,
     AuditLog as AuditLogBO,
+    TIPOS_INMUEBLE,
+    TIPOS_OPERACION,
 )
 
 # Import Data Access Layer
@@ -52,6 +54,48 @@ def es_administrador(id_agente: Optional[int]) -> bool:
     return agente is not None and agente.rol == "Administrador"
 
 
+def _exigir_administrador(id_agente: Optional[int], mensaje: str) -> None:
+    """
+    Exige que el solicitante sea Administrador. Es obligatorio informar al solicitante:
+    si no se identifica (None) el acceso también se deniega.
+    """
+    if not es_administrador(id_agente):
+        raise PermissionError(mensaje)
+
+
+ESTADOS_CONTRATO_BORRADOR = ("solicitado", "pendiente_aprobacion", "aprobado")
+
+
+def _exigir_contrato_modificable(contrato: Optional[ContratoBO], accion: str) -> ContratoBO:
+    """RN-04: solo se puede alterar un contrato mientras es borrador (no firmado)."""
+    if not contrato:
+        raise ValueError("El contrato especificado no existe.")
+    if contrato.estado not in ESTADOS_CONTRATO_BORRADOR:
+        raise ValueError(
+            f"El contrato ya ha sido firmado o cerrado (estado '{contrato.estado}'). "
+            f"No se puede {accion}: los contratos firmados son inmutables."
+        )
+    return contrato
+
+
+def obtener_datos_bancarios() -> dict:
+    """Datos de la cuenta recaudadora de la inmobiliaria, configurables por variables de entorno."""
+    return {
+        "banco": os.environ.get("BANCO_NOMBRE", "Banco Santander Río"),
+        "titular": os.environ.get("BANCO_TITULAR", "InmoGestión S.A."),
+        "cuit": os.environ.get("BANCO_CUIT", "30-71889900-4"),
+        "cbu": os.environ.get("BANCO_CBU", "0720123420000000456789"),
+        "alias": os.environ.get("BANCO_ALIAS", "INMO.GESTION.PAGOS"),
+        "domicilio": os.environ.get("INMOBILIARIA_DOMICILIO", "Av. Pellegrini 250, Rosario"),
+    }
+
+
+def _validar_email(email: str) -> None:
+    """Valida el formato básico de un correo electrónico."""
+    if not email or "@" not in email or "." not in email.split("@")[-1]:
+        raise ValueError("El correo electrónico ingresado no es válido.")
+
+
 def registrar_agente(
     nombre: str,
     apellido: str,
@@ -64,10 +108,18 @@ def registrar_agente(
     domicilio: str,
     telefono: str,
     rol: str = "Estándar",
+    id_agente_solicitante: Optional[int] = None,
 ) -> AgenteBO:
     """
     Registra un nuevo agente con contraseña encriptada y asignación de rol.
+    Si se informa el solicitante (alta desde la interfaz) debe ser Administrador (RN-11).
+    Sin solicitante solo se admite para el alta inicial del sistema (seed / bootstrap).
     """
+    if id_agente_solicitante is not None:
+        _exigir_administrador(
+            id_agente_solicitante,
+            "Acceso denegado: Solo los Administradores pueden dar de alta agentes.",
+        )
     existing = db.get_agente_by_email(email)
     if existing:
         raise ValueError("Ya existe un agente con ese correo electrónico.")
@@ -109,6 +161,9 @@ def registrar_cliente(
         raise ValueError(
             "Ya existe un cliente con ese tipo y número de documento."
         )
+    _validar_email(email)
+    if db.get_cliente_by_email(email.strip()):
+        raise ValueError("Ya existe un cliente registrado con ese correo electrónico.")
 
     ag_id = id_agente_creador if id_agente_creador is not None else id_agente
     bo = ClienteBO(
@@ -141,6 +196,7 @@ def registrar_propietario(
     """
     Registra un nuevo propietario de inmuebles.
     """
+    _validar_email(email)
     existing = db.get_propietario_by_doc(tipo_doc, nro_doc)
     if existing:
         raise ValueError(
@@ -164,25 +220,52 @@ def registrar_propietario(
     return db.save_propietario(bo)
 
 
+def listar_tipos_inmueble() -> List[str]:
+    """Tipos de inmueble admitidos por el catálogo."""
+    return list(TIPOS_INMUEBLE)
+
+
+def listar_tipos_operacion() -> List[str]:
+    """Tipos de operación comercial admitidos (Alquiler / Venta)."""
+    return list(TIPOS_OPERACION)
+
+
 def registrar_propiedad(
     direccion: str,
     tipo: str,
     zona: str,
     id_propietario: int,
     fecha_disponibilidad: Optional[date] = None,
+    tipo_operacion: str = "Alquiler",
 ) -> PropiedadBO:
     """
     Registra una nueva propiedad en la inmobiliaria.
+    `tipo` es el tipo de inmueble (Casa, Departamento, Local, Terreno, Oficina) y
+    `tipo_operacion` la operación comercial (Alquiler o Venta).
     """
+    if tipo not in TIPOS_INMUEBLE:
+        raise ValueError(
+            f"Tipo de inmueble inválido. Opciones: {', '.join(TIPOS_INMUEBLE)}."
+        )
+    if tipo_operacion not in TIPOS_OPERACION:
+        raise ValueError(
+            f"Tipo de operación inválido. Opciones: {', '.join(TIPOS_OPERACION)}."
+        )
+    if not direccion or not direccion.strip():
+        raise ValueError("La dirección del inmueble es obligatoria.")
+    if not zona or not zona.strip():
+        raise ValueError("La zona del inmueble es obligatoria.")
+
     propietario = db.get_propietario_by_id(id_propietario)
     if not propietario:
         raise ValueError("El propietario especificado no existe.")
 
     bo = PropiedadBO(
         id=None,
-        direccion=direccion,
+        direccion=direccion.strip(),
         tipo=tipo,
-        zona=zona,
+        tipo_operacion=tipo_operacion,
+        zona=zona.strip(),
         estado="disponible",
         id_propietario=id_propietario,
         fecha_disponibilidad=fecha_disponibilidad or date.today(),
@@ -272,6 +355,13 @@ def solicitar_contrato(
     if not active_assignment or active_assignment.id_agente != id_agente:
         raise ValueError(
             f"El agente {agente.nombre_completo} no está asignado actualmente a esta propiedad."
+        )
+
+    operacion_contrato = "Venta" if tipo_contrato.lower() == "compraventa" else "Alquiler"
+    if propiedad.tipo_operacion != operacion_contrato:
+        raise ValueError(
+            f"La propiedad está publicada para {propiedad.tipo_operacion.lower()}; "
+            f"no admite un contrato de tipo {tipo_contrato}."
         )
 
     tiene_documentacion = bool(
@@ -392,10 +482,57 @@ def firmar_contrato(
         entidad="Contrato",
         id_entidad=nro_contrato,
         accion="Firmar",
-        descripcion=f"El agente {agente_nombre} firmó el contrato #{nro_contrato} de tipo {contrato.tipo_contrato} (Propiedad: {propiedad.direccion})."
+        descripcion=(
+            f"El agente {agente_nombre} firmó el contrato #{nro_contrato} de tipo "
+            f"{contrato.tipo_contrato} (Propiedad: {propiedad.direccion})."
+        )
     )
 
     return saved_contrato
+
+
+def finalizar_contrato(
+    nro_contrato: int,
+    id_agente_solicitante: Optional[int] = None,
+) -> ContratoBO:
+    """
+    Cierra un contrato de alquiler activo (estado 'finalizado') y devuelve el inmueble
+    al catálogo como disponible. Solo el agente a cargo o un Administrador pueden hacerlo.
+    """
+    contrato = db.get_contrato_by_id(nro_contrato)
+    if not contrato:
+        raise ValueError("El contrato especificado no existe.")
+    if not puede_acceder_contrato(id_agente_solicitante, contrato):
+        raise PermissionError("Acceso denegado: no puede finalizar un contrato ajeno.")
+    if contrato.estado != "activo":
+        raise ValueError("Solo se pueden finalizar contratos activos.")
+    if contrato.tipo_contrato.lower() != "alquiler":
+        raise ValueError(
+            "Las compraventas se cierran mediante el traspaso de titularidad del inmueble."
+        )
+
+    propiedad = db.get_propiedad_by_id(contrato.id_propiedad)
+    contrato.estado = "finalizado"
+    saved = db.save_contrato(contrato)
+    direccion = "(inmueble inexistente)"
+    if propiedad:
+        propiedad.estado = "disponible"
+        propiedad.fecha_disponibilidad = date.today()
+        db.save_propiedad(propiedad)
+        direccion = propiedad.direccion
+
+    agente = db.get_agente_by_id(id_agente_solicitante)
+    registrar_log_auditoria(
+        id_agente=id_agente_solicitante,
+        entidad="Contrato",
+        id_entidad=nro_contrato,
+        accion="Finalizar",
+        descripcion=(
+            f"El agente {agente.nombre_completo if agente else 'Sistema'} finalizó el contrato "
+            f"#{nro_contrato}; el inmueble {direccion} quedó disponible."
+        ),
+    )
+    return saved
 
 
 def cargar_clausulas_predeterminadas(
@@ -507,10 +644,7 @@ def agregar_clausula_contrato(
     contrato = db.get_contrato_by_id(nro_contrato)
     if not contrato:
         raise ValueError("El contrato especificado no existe.")
-    if contrato.estado not in ("solicitado", "aprobado"):
-        raise ValueError(
-            "El contrato ya ha sido firmado o rechazado. No se pueden modificar ni agregar cláusulas."
-        )
+    _exigir_contrato_modificable(contrato, "agregar cláusulas")
 
     if orden is None:
         existentes = db.get_clausulas_by_contrato(nro_contrato)
@@ -547,11 +681,7 @@ def editar_clausula_contrato(
     if not cl:
         raise ValueError("La cláusula especificada no existe.")
 
-    contrato = db.get_contrato_by_id(cl.nro_contrato)
-    if not contrato or contrato.estado != "solicitado":
-        raise ValueError(
-            "El contrato ya ha sido firmado. No se pueden modificar cláusulas en un contrato firmado o inactivo."
-        )
+    _exigir_contrato_modificable(db.get_contrato_by_id(cl.nro_contrato), "modificar cláusulas")
 
     if nro_contrato and cl.nro_contrato != nro_contrato:
         raise ValueError("La cláusula especificada no existe en este contrato.")
@@ -582,11 +712,7 @@ def eliminar_clausula_contrato(
     if not cl:
         raise ValueError("La cláusula especificada no existe.")
 
-    contrato = db.get_contrato_by_id(cl.nro_contrato)
-    if not contrato or contrato.estado != "solicitado":
-        raise ValueError(
-            "El contrato ya ha sido firmado. No se pueden eliminar cláusulas en un contrato firmado o inactivo."
-        )
+    _exigir_contrato_modificable(db.get_contrato_by_id(cl.nro_contrato), "eliminar cláusulas")
 
     return db.delete_clausula(id_clausula)
 
@@ -596,13 +722,9 @@ def modificar_comisiones_contrato(
     comision_porcentaje: float,
     comision_agente_porcentaje: Optional[float] = None,
 ) -> ContratoBO:
-    contrato = db.get_contrato_by_id(nro_contrato)
-    if not contrato:
-        raise ValueError("El contrato especificado no existe.")
-    if contrato.estado != "solicitado":
-        raise ValueError(
-            "El contrato ya ha sido firmado. No se pueden modificar honorarios en un contrato ya firmado."
-        )
+    contrato = _exigir_contrato_modificable(
+        db.get_contrato_by_id(nro_contrato), "modificar honorarios"
+    )
 
     if comision_porcentaje < 0 or (
         comision_agente_porcentaje is not None and comision_agente_porcentaje < 0
@@ -690,7 +812,7 @@ def obtener_contrato(nro_contrato: int) -> Optional[ContratoBO]:
 
 def listar_propiedades(id_agente: Optional[int] = None) -> List[PropiedadBO]:
     """
-    Lista propiedades. Si id_agente está especificado y no es administrador, 
+    Lista propiedades. Si id_agente está especificado y no es administrador,
     solo retorna las propiedades asignadas activamente a ese agente.
     Si id_agente es administrador o None, retorna todas las propiedades.
     """
@@ -701,7 +823,7 @@ def listar_propiedades(id_agente: Optional[int] = None) -> List[PropiedadBO]:
 
 def listar_clientes(id_agente: Optional[int] = None) -> List[ClienteBO]:
     """
-    Lista clientes. Si id_agente está especificado y no es administrador, 
+    Lista clientes. Si id_agente está especificado y no es administrador,
     solo retorna los clientes que ese agente creó.
     Si id_agente es administrador o None, retorna todos los clientes.
     """
@@ -712,7 +834,7 @@ def listar_clientes(id_agente: Optional[int] = None) -> List[ClienteBO]:
 
 def listar_propietarios(id_agente: Optional[int] = None) -> List[PropietarioBO]:
     """
-    Lista propietarios. Si id_agente está especificado y no es administrador, 
+    Lista propietarios. Si id_agente está especificado y no es administrador,
     solo retorna los propietarios que ese agente creó.
     Si id_agente es administrador o None, retorna todos los propietarios.
     """
@@ -732,11 +854,11 @@ def puede_acceder_propiedad(id_agente: Optional[int], id_propiedad: int) -> bool
     """
     if not id_agente:
         return False
-    
+
     # Admin puede acceder a todo
     if es_administrador(id_agente):
         return True
-    
+
     # Agente estándar solo puede acceder si está activamente asignado
     assignment = db.get_active_agent_assignment_for_property(id_propiedad)
     return assignment is not None and assignment.id_agente == id_agente
@@ -816,7 +938,6 @@ def registrar_pago_inquilino(
     monto: float,
     fecha_pago: Optional[date] = None,
     ruta_comprobante: Optional[str] = None,
-    monto_recargo: Optional[float] = None,
     id_agente_solicitante: Optional[int] = None,
 ) -> PagoInquilinoBO:
     """
@@ -841,17 +962,12 @@ def registrar_pago_inquilino(
 
     fecha_real_pago = fecha_pago or date.today()
 
-    if monto_recargo is None:
-        calc = calcular_recargo_mora(monto, mes, fecha_real_pago)
-        fecha_vencimiento = calc["fecha_vencimiento"]
-        dias_retraso = calc["dias_retraso"]
-        monto_recargo = calc["monto_recargo"]
-        monto_total = calc["monto_total"]
-    else:
-        calc = calcular_recargo_mora(monto, mes, fecha_real_pago)
-        fecha_vencimiento = calc["fecha_vencimiento"]
-        dias_retraso = calc["dias_retraso"]
-        monto_total = round(monto + monto_recargo, 2)
+    # RN-08: la mora es automática e invariable (0.2% diario desde el día 11)
+    calc = calcular_recargo_mora(monto, mes, fecha_real_pago)
+    fecha_vencimiento = calc["fecha_vencimiento"]
+    dias_retraso = calc["dias_retraso"]
+    monto_recargo = calc["monto_recargo"]
+    monto_total = calc["monto_total"]
 
     bo = PagoInquilinoBO(
         id=None,
@@ -878,7 +994,10 @@ def registrar_pago_inquilino(
         entidad="PagoInquilino",
         id_entidad=saved_pago.id,
         accion="RegistrarPago",
-        descripcion=f"El agente {agente_nombre} registró el pago del período {mes} para el contrato #{nro_contrato}. Monto: ${monto:,.2f}, Recargo: ${saved_pago.monto_recargo:,.2f}."
+        descripcion=(
+            f"El agente {agente_nombre} registró el pago del período {mes} para el contrato "
+            f"#{nro_contrato}. Monto: ${monto:,.2f}, Recargo: ${saved_pago.monto_recargo:,.2f}."
+        )
     )
 
     return saved_pago
@@ -924,8 +1043,10 @@ def obtener_datos_boleta_alquiler(nro_contrato: int, mes: str) -> dict:
         "fecha_2do_vencimiento": fecha_2do_vencimiento,
         "recargo_estimado_2do_venc": recargo_estimado_2do_venc,
         "total_2do_vencimiento": total_2do_vencimiento,
+        "contrato": contrato,
         "pago_registrado": pago_existente,
         "codigo_barras_ref": f"INMO-{contrato.nro_contrato:04d}-{mes.replace('-', '')}",
+        "datos_bancarios": obtener_datos_bancarios(),
     }
 
 
@@ -1192,8 +1313,15 @@ def listar_agendas_propiedad_con_metricas(id_propiedad: int) -> List[dict]:
     return resultado
 
 
-def listar_todas_las_agendas_con_metricas() -> List[dict]:
+def listar_todas_las_agendas_con_metricas(id_agente: Optional[int] = None) -> List[dict]:
+    """
+    Agenda global de visitas con métricas de cupo. Un agente Estándar solo ve los turnos
+    que coordina él; el Administrador ve la agenda completa.
+    """
     agendas = db.list_todas_agendas_visitas()
+    if id_agente and not es_administrador(id_agente):
+        agendas = [ag for ag in agendas if ag.id_agente == id_agente]
+    agendas = sorted(agendas, key=lambda ag: ag.fecha_hora_visita)
     resultado = []
     for ag in agendas:
         propiedad = db.get_propiedad_by_id(ag.id_propiedad)
@@ -1233,10 +1361,10 @@ def generar_liquidaciones_mes(
     """
     Genera liquidaciones a propietarios para contratos activos.
     """
-    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
-        raise PermissionError(
-            "Acceso denegado: Se requieren permisos de Administrador para generar liquidaciones."
-        )
+    _exigir_administrador(
+        id_agente_solicitante,
+        "Acceso denegado: Se requieren permisos de Administrador para generar liquidaciones.",
+    )
 
     if (
         not mes_correspondiente
@@ -1253,7 +1381,7 @@ def generar_liquidaciones_mes(
             continue
 
         propiedad = db.get_propiedad_by_id(c.id_propiedad)
-        if not propiedad or propiedad.tipo.lower() != "alquiler":
+        if not propiedad or c.tipo_contrato.lower() != "alquiler":
             continue
 
         pago_inq = db.get_pago_inquilino_by_period(
@@ -1298,10 +1426,10 @@ def registrar_transferencia_propietario(
     """
     Registra el pago de la liquidación transferido al propietario.
     """
-    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
-        raise PermissionError(
-            "Acceso denegado: Se requieren permisos de Administrador para registrar transferencias."
-        )
+    _exigir_administrador(
+        id_agente_solicitante,
+        "Acceso denegado: Se requieren permisos de Administrador para registrar transferencias.",
+    )
 
     payout = db.get_pago_propietario_by_id(id_pago_propietario)
     if not payout:
@@ -1360,10 +1488,10 @@ def exportar_reporte_financiero_csv(
     """
     Genera un archivo CSV con el reporte financiero.
     """
-    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
-        raise PermissionError(
-            "Acceso denegado: Solo los Administradores pueden exportar reportes financieros."
-        )
+    _exigir_administrador(
+        id_agente_solicitante,
+        "Acceso denegado: Solo los Administradores pueden exportar reportes financieros.",
+    )
 
     lines = []
     if tipo_reporte == "cobros":
@@ -1431,7 +1559,7 @@ def obtener_estadisticas_financieras(
         if c.estado != "activo":
             continue
         prop = db.get_propiedad_by_id(c.id_propiedad)
-        if not prop or prop.tipo.lower() != "alquiler":
+        if not prop or c.tipo_contrato.lower() != "alquiler":
             continue
 
         pago_inq = db.get_pago_inquilino_by_period(c.nro_contrato, mes)
@@ -1704,10 +1832,10 @@ def enviar_alertas_mora_inquilinos(
     después del día 10 del mes correspondiente.
     Incluye prevención de spam/duplicados mediante fecha_ultimo_aviso_mora.
     """
-    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
-        raise PermissionError(
-            "Acceso denegado: Solo los Administradores pueden ejecutar el envío de alertas de mora."
-        )
+    _exigir_administrador(
+        id_agente_solicitante,
+        "Acceso denegado: Solo los Administradores pueden ejecutar el envío de alertas de mora.",
+    )
 
     hoy = date.today()
     mes_evaluar = mes or hoy.strftime("%Y-%m")
@@ -1770,17 +1898,17 @@ def enviar_alertas_mora_inquilinos(
                 f"Recargo por Pago Fuera de Término (0.2% diario): ${monto_recargo:,.2f}\n"
                 f"TOTAL A REGULARIZAR: ${monto_total:,.2f}\n\n"
                 f"--- DATOS PARA TRANSFERENCIA BANCARIA ---\n"
-                f"Banco: Banco Santander Río\n"
-                f"Titular: InmoGestión B2B S.A.\n"
-                f"CUIT: 30-71889900-4\n"
-                f"CBU: 0720123420000000456789\n"
-                f"Alias: INMO.GESTION.PAGOS\n\n"
+                f"Banco: {obtener_datos_bancarios()['banco']}\n"
+                f"Titular: {obtener_datos_bancarios()['titular']}\n"
+                f"CUIT: {obtener_datos_bancarios()['cuit']}\n"
+                f"CBU: {obtener_datos_bancarios()['cbu']}\n"
+                f"Alias: {obtener_datos_bancarios()['alias']}\n\n"
                 f"Una vez realizada la transferencia, recuerde enviar o adjuntar su comprobante.\n"
                 f"Si ya ha regularizado este concepto en las últimas 24 horas, "
                 f"por favor desestime el presente aviso.\n\n"
                 f"Atentamente,\n"
                 f"Departamento de Cobranzas y Finanzas\n"
-                f"InmoGestión B2B — Av. Pellegrini 250, Rosario"
+                f"InmoGestión B2B — {obtener_datos_bancarios()['domicilio']}"
             )
 
             enviado = enviar_email(cliente.email, asunto, cuerpo)
@@ -1864,10 +1992,10 @@ def enviar_alerta_mora_individual(
     Envía la alerta de mora por correo a un contrato de alquiler individual.
     Valida que el contrato esté activo, sea de alquiler y se encuentre vencido (posterior al día 10).
     """
-    if id_agente_solicitante and not es_administrador(id_agente_solicitante):
-        raise PermissionError(
-            "Acceso denegado: Se requieren permisos de Administrador para enviar alertas de mora."
-        )
+    _exigir_administrador(
+        id_agente_solicitante,
+        "Acceso denegado: Se requieren permisos de Administrador para enviar alertas de mora.",
+    )
 
     contrato = db.get_contrato_by_id(nro_contrato)
     if not contrato:
@@ -1928,17 +2056,17 @@ def enviar_alerta_mora_individual(
         f"Recargo por Pago Fuera de Término (0.2% diario): ${monto_recargo:,.2f}\n"
         f"TOTAL A REGULARIZAR: ${monto_total:,.2f}\n\n"
         f"--- DATOS PARA TRANSFERENCIA BANCARIA ---\n"
-        f"Banco: Banco Santander Río\n"
-        f"Titular: InmoGestión B2B S.A.\n"
-        f"CUIT: 30-71889900-4\n"
-        f"CBU: 0720123420000000456789\n"
-        f"Alias: INMO.GESTION.PAGOS\n\n"
+        f"Banco: {obtener_datos_bancarios()['banco']}\n"
+        f"Titular: {obtener_datos_bancarios()['titular']}\n"
+        f"CUIT: {obtener_datos_bancarios()['cuit']}\n"
+        f"CBU: {obtener_datos_bancarios()['cbu']}\n"
+        f"Alias: {obtener_datos_bancarios()['alias']}\n\n"
         f"Una vez realizada la transferencia, recuerde enviar o adjuntar su comprobante.\n"
         f"Si ya ha regularizado este concepto en las últimas 24 horas, "
         f"por favor desestime el presente aviso.\n\n"
         f"Atentamente,\n"
         f"Departamento de Cobranzas y Finanzas\n"
-        f"InmoGestión B2B — Av. Pellegrini 250, Rosario"
+        f"InmoGestión B2B — {obtener_datos_bancarios()['domicilio']}"
     )
 
     enviar_email(cliente.email, asunto, cuerpo)
@@ -1996,7 +2124,7 @@ def notificar_transferencia_propietario(id_pago_propietario: int) -> bool:
         f"Ante cualquier duda o consulta contable, estamos a su entera disposición.\n\n"
         f"Atentamente,\n"
         f"Administración de Propiedades & Cajas\n"
-        f"InmoGestión B2B — Av. Pellegrini 250, Rosario"
+        f"InmoGestión B2B — {obtener_datos_bancarios()['domicilio']}"
     )
 
     return enviar_email(propietario.email, asunto, cuerpo)
@@ -2048,7 +2176,7 @@ def cancelar_inscripcion_visita(
         raise ValueError("La inscripción especificada no existe.")
 
     id_agenda = db_obj.id_agenda
-    
+
     agente_nombre = "Sistema"
     if id_agente_solicitante:
         ag = db.get_agente_by_id(id_agente_solicitante)
@@ -2063,14 +2191,17 @@ def cancelar_inscripcion_visita(
             if inscriptos_actuales < agenda.cupo_maximo and agenda.estado == "completo":
                 agenda.estado = "disponible"
                 db.save_agenda_visita(agenda)
-            
+
             # Registrar auditoría
             registrar_log_auditoria(
                 id_agente=id_agente_solicitante,
                 entidad="InscripcionVisita",
                 id_entidad=id_inscripcion,
                 accion="Cancelar",
-                descripcion=f"El agente {agente_nombre} canceló la inscripción de {db_obj.nombre_visitante} a la agenda #{id_agenda}."
+                descripcion=(
+                    f"El agente {agente_nombre} canceló la inscripción de "
+                    f"{db_obj.nombre_visitante} a la agenda #{id_agenda}."
+                )
             )
         return True
     return False
@@ -2102,7 +2233,7 @@ def obtener_contratos_por_vencer(
                     "fecha_vencimiento": vencimiento,
                     "dias_restantes": dias_restantes,
                 })
-    
+
     por_vencer.sort(key=lambda x: x["dias_restantes"])
     return por_vencer
 
@@ -2163,7 +2294,9 @@ def traspasar_titularidad_a_comprador(
 
     # Actualizar la propiedad
     propiedad.id_propietario = propietario_nuevo.id
-    propiedad.tipo = nuevo_tipo_operacion
+    if nuevo_tipo_operacion not in TIPOS_OPERACION:
+        raise ValueError(f"Tipo de operación inválido. Opciones: {', '.join(TIPOS_OPERACION)}.")
+    propiedad.tipo_operacion = nuevo_tipo_operacion
     propiedad.estado = "disponible"
     propiedad.fecha_disponibilidad = date.today()
     propiedad_actualizada = db.save_propiedad(propiedad)
@@ -2187,10 +2320,10 @@ def traspasar_titularidad_a_comprador(
         accion="TraspasoTitularidad",
         descripcion=(
             f"El agente {agente_nombre} traspasó la titularidad de la propiedad '{propiedad.direccion}' "
-            f"de {nombre_anterior} a {propietario_nuevo.nombre_completo} (Contrato Compraventa #{contrato_venta.nro_contrato}). "
-            f"Inmueble reactivado como '{propiedad.tipo}' en estado 'disponible'."
+            f"de {nombre_anterior} a {propietario_nuevo.nombre_completo} "
+            f"(Contrato Compraventa #{contrato_venta.nro_contrato}). "
+            f"Inmueble reactivado para {propiedad.tipo_operacion.lower()} en estado 'disponible'."
         ),
     )
 
     return propiedad_actualizada
-

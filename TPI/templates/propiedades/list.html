@@ -59,6 +59,12 @@
                     <option value="">Todos los tipos</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="zona-filter"><i class="bi bi-map"></i> Zona</label>
+                <select id="zona-filter" class="form-control" style="width: 100%;">
+                    <option value="">Todas las zonas</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -70,6 +76,7 @@
                     <th>ID</th>
                     <th>Dirección</th>
                     <th>Tipo</th>
+                    <th>Operación</th>
                     <th>Zona</th>
                     <th>Estado</th>
                     <th>Propietario</th>
@@ -87,6 +94,7 @@
                             {{ item.propiedad.tipo }}
                         </span>
                     </td>
+                    <td>{{ item.propiedad.tipo_operacion }}</td>
                     <td>{{ item.propiedad.zona }}</td>
                     <td>
                         <span class="badge badge-{{ item.propiedad.estado }}">
@@ -156,9 +164,10 @@ $(document).ready(function() {
     // Populate Propietarios and Tipos dynamically from the table rows
     var propietarios = new Set();
     var tipos = new Set();
+    var zonas = new Set();
 
     table.rows().every(function() {
-        var cellOwner = $(this.node()).find('td').eq(5).text().trim();
+        var cellOwner = $(this.node()).find('td').eq(6).text().trim();
         if (cellOwner && cellOwner !== "Sin propietario" && cellOwner !== "Sin propietario (Agente Estándar)") {
             propietarios.add(cellOwner);
         }
@@ -166,6 +175,11 @@ $(document).ready(function() {
         var cellType = $(this.node()).find('td').eq(2).text().trim();
         if (cellType) {
             tipos.add(cellType);
+        }
+
+        var cellZona = $(this.node()).find('td').eq(4).text().trim();
+        if (cellZona) {
+            zonas.add(cellZona);
         }
     });
 
@@ -181,20 +195,30 @@ $(document).ready(function() {
         tipoSelect.append(new Option(tipo, tipo));
     });
 
+    // Populate Zona Select
+    var zonaSelect = $('#zona-filter');
+    Array.from(zonas).sort().forEach(function(zona) {
+        zonaSelect.append(new Option(zona, zona));
+    });
+
     // Initialize Select2 on the owner dropdown
     $('#propietario-filter').select2();
 
     // Bind filters
     $('#propietario-filter').on('change', function() {
-        table.column(5).search(this.value).draw();
+        table.column(6).search(this.value).draw();
     });
 
     $('#estado-filter').on('change', function() {
-        table.column(4).search(this.value).draw();
+        table.column(5).search(this.value).draw();
     });
 
     $('#tipo-filter').on('change', function() {
         table.column(2).search(this.value).draw();
+    });
+
+    $('#zona-filter').on('change', function() {
+        table.column(4).search(this.value).draw();
     });
 });
 </script>

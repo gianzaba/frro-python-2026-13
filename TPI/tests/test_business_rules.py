@@ -88,8 +88,7 @@ def test_business_rule_1_signing_property_not_available():
 
     # Create Property and assign agent
     prop = controller.registrar_propiedad(
-        "Calle 1", "Alquiler", "Norte", owner.id
-    )
+        "Calle 1", "Departamento", "Norte", owner.id, tipo_operacion="Alquiler")
     controller.asignar_agente_a_propiedad(agent.id, prop.id, datetime.now())
 
     # Solicit contract (should succeed because property is available)
@@ -137,9 +136,8 @@ def test_business_rule_2_agent_multiple_property_assignments():
     )
 
     prop1 = controller.registrar_propiedad(
-        "Calle 1", "Alquiler", "Norte", owner.id
-    )
-    prop2 = controller.registrar_propiedad("Calle 2", "Venta", "Sur", owner.id)
+        "Calle 1", "Departamento", "Norte", owner.id, tipo_operacion="Alquiler")
+    prop2 = controller.registrar_propiedad("Calle 2", "Departamento", "Sur", owner.id, tipo_operacion="Venta")
 
     now = datetime.now()
 
@@ -201,8 +199,7 @@ def test_business_rule_3_agent_performing_contract_must_be_assigned():
     )
 
     prop = controller.registrar_propiedad(
-        "Calle 1", "Alquiler", "Norte", owner.id
-    )
+        "Calle 1", "Departamento", "Norte", owner.id, tipo_operacion="Alquiler")
 
     # Assign agent1 to property
     controller.asignar_agente_a_propiedad(agent1.id, prop.id, datetime.now())

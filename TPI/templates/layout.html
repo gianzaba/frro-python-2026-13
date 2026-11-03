@@ -144,6 +144,12 @@
                         <span>Propiedades</span>
                     </a>
                 </li>
+                <li class="{% if request.path.startswith('/visitas') %}active{% endif %}">
+                    <a href="{{ url_for('views.visitas_list') }}">
+                        <i class="bi bi-calendar-event-fill"></i>
+                        <span>Visitas</span>
+                    </a>
+                </li>
                 <li class="{% if request.path.startswith('/clientes') %}active{% endif %}">
                     <a href="{{ url_for('views.clientes_list') }}">
                         <i class="bi bi-people-fill"></i>

@@ -47,7 +47,7 @@
                     <option value="" disabled selected>Selecciona la propiedad...</option>
                     {% for item in propiedades %}
                         <option value="{{ item.prop.id }}:{{ item.agente.id }}">
-                            {{ item.prop.direccion }} ({{ item.prop.tipo }}) - Agente Comercial: {{ item.agente.nombre_completo }}
+                            {{ item.prop.direccion }} ({{ item.prop.tipo }} en {{ item.prop.tipo_operacion|lower }}) - Agente Comercial: {{ item.agente.nombre_completo }}
                         </option>
                     {% endfor %}
                 </select>

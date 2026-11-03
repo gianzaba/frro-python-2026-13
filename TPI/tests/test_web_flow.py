@@ -57,9 +57,10 @@ def client():
     # 4. Property and assign agent
     prop = controller.registrar_propiedad(
         direccion="San Martin 100",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=owner.id,
+        tipo_operacion="Alquiler",
     )
     agent = controller.autenticar_agente("agente.web@test.com", "webpassword")
     controller.asignar_agente_a_propiedad(agent.id, prop.id, datetime.now())

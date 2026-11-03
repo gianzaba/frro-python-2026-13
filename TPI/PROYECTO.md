@@ -16,7 +16,7 @@ Este archivo contiene la información detallada del proyecto de acuerdo a las es
   - `Agente`: Empleado/corredor inmobiliario con matrícula y CUIL.
   - `Propietario`: Dueño titular del inmueble.
   - `Cliente`: Inquilino o comprador.
-- **Propiedad**: Inmueble administrado (`direccion`, `tipo`, `zona`, `estado`, `id_propietario`).
+- **Propiedad**: Inmueble administrado (`direccion`, `tipo` de inmueble: Casa/Departamento/Local/Terreno/Oficina, `tipo_operacion`: Alquiler/Venta, `zona`, `estado`, `id_propietario`, `fecha_disponibilidad`).
 - **AgenteAsignado**: Asociación entre Agente y Propiedad con registro temporal.
 - **Contrato**: Acuerdo entre Cliente, Agente y Propiedad (`monto`, `comision_porcentaje`, `estado`, `fecha_contrato`).
 - **PagoInquilino**: Registro del pago del canon locativo por parte del cliente.

@@ -77,10 +77,11 @@ def test_dias_vacante_and_ranking():
     fecha_antigua = date.today() - timedelta(days=45)
     prop = controller.registrar_propiedad(
         direccion="San Martin 100",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=propietario.id,
         fecha_disponibilidad=fecha_antigua,
+        tipo_operacion="Alquiler",
     )
 
     dias = controller.calcular_dias_vacante(prop)

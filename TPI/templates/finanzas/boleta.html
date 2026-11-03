@@ -292,6 +292,9 @@
             <a href="{{ url_for('views.finanzas_dashboard') }}" class="btn btn-back">
                 <i class="bi bi-arrow-left"></i> Volver a Finanzas
             </a>
+            <a href="{{ url_for('views.boleta_alquiler_pdf', nro_contrato=nro_contrato, mes=mes) }}" class="btn btn-print" target="_blank">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Descargar PDF
+            </a>
             <button type="button" onclick="window.print()" class="btn btn-print">
                 <i class="bi bi-printer-fill"></i> Imprimir / Guardar en PDF
             </button>
@@ -410,8 +413,8 @@
             <strong style="color: #0f172a; display: block; margin-bottom: 0.35rem;">
                 <i class="bi bi-bank"></i> Instrucciones para Transferencia Bancaria:
             </strong>
-            <div><strong>Banco:</strong> Banco de Santa Fe / Macro | <strong>Titular:</strong> InmoGestión S.A.</div>
-            <div><strong>CBU:</strong> 0070123420000012345678 | <strong>Alias:</strong> INMOGESTION.PAGOS</div>
+            <div><strong>Banco:</strong> {{ datos_bancarios.banco }} | <strong>Titular:</strong> {{ datos_bancarios.titular }}</div>
+            <div><strong>CBU:</strong> {{ datos_bancarios.cbu }} | <strong>Alias:</strong> {{ datos_bancarios.alias }}</div>
             <div style="margin-top: 0.3rem; color: #475569; font-size: 0.8rem;">
                 * Enviar el comprobante de transferencia indicando el <em>N° de Contrato (#{{ nro_contrato }})</em> y <em>Mes ({{ mes }})</em> para la acreditación automática.
             </div>

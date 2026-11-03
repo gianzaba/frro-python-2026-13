@@ -9,6 +9,23 @@ import datos.db as db  # noqa: E402
 import business.controller as controller  # noqa: E402
 
 
+def _crear_admin():
+    """Administrador dedicado a las operaciones financieras restringidas (RN-11)."""
+    return controller.registrar_agente(
+        nombre="Admin",
+        apellido="Finanzas",
+        email="admin.finanzas@test.com",
+        password="password",
+        cuil="20-99999999-9",
+        matricula="MAT-ADM",
+        tipo_doc="DNI",
+        nro_doc="99999999",
+        domicilio="Calle Admin 1",
+        telefono="000000",
+        rol="Administrador",
+    )
+
+
 @pytest.fixture(autouse=True)
 def setup_test_db():
     """
@@ -57,9 +74,10 @@ def test_tenant_payment_constraints():
     )
     prop = controller.registrar_propiedad(
         direccion="Urquiza 1540",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=owner.id,
+        tipo_operacion="Alquiler",
     )
     controller.asignar_agente_a_propiedad(agente.id, prop.id, datetime.now())
 
@@ -105,6 +123,7 @@ def test_business_rule_4_settlement_generation():
     Tests Rule 4: Payouts are generated only if the tenant has paid first,
     calculates correct commissions, and prevents duplicate payout generation.
     """
+    admin = _crear_admin()
     # 1. Setup entities
     agente = controller.registrar_agente(
         nombre="Agente",
@@ -138,9 +157,10 @@ def test_business_rule_4_settlement_generation():
     )
     prop = controller.registrar_propiedad(
         direccion="Urquiza 1540",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=owner.id,
+        tipo_operacion="Alquiler",
     )
     controller.asignar_agente_a_propiedad(agente.id, prop.id, datetime.now())
 
@@ -155,7 +175,7 @@ def test_business_rule_4_settlement_generation():
     controller.firmar_contrato(contrato.nro_contrato)
 
     # Try generating settlement before tenant has paid (should yield empty list)
-    liquidaciones = controller.generar_liquidaciones_mes("2026-08")
+    liquidaciones = controller.generar_liquidaciones_mes("2026-08", id_agente_solicitante=admin.id)
     assert len(liquidaciones) == 0
 
     # Record tenant payment
@@ -164,7 +184,7 @@ def test_business_rule_4_settlement_generation():
     )
 
     # Generate settlement (should succeed)
-    liquidaciones = controller.generar_liquidaciones_mes("2026-08")
+    liquidaciones = controller.generar_liquidaciones_mes("2026-08", id_agente_solicitante=admin.id)
     assert len(liquidaciones) == 1
     liq = liquidaciones[0]
 
@@ -178,11 +198,11 @@ def test_business_rule_4_settlement_generation():
     assert liq.fecha_pago is None
 
     # Try generating again (should ignore duplicate to prevent double payout)
-    double_liquidaciones = controller.generar_liquidaciones_mes("2026-08")
+    double_liquidaciones = controller.generar_liquidaciones_mes("2026-08", id_agente_solicitante=admin.id)
     assert len(double_liquidaciones) == 0
 
     # Pay the owner (transfer payout)
-    updated_liq = controller.registrar_transferencia_propietario(liq.id)
+    updated_liq = controller.registrar_transferencia_propietario(liq.id, id_agente_solicitante=admin.id)
     assert updated_liq.estado == "pagado"
     assert updated_liq.fecha_pago == date.today()
 
@@ -191,6 +211,7 @@ def test_dashboard_statistics():
     """
     Tests stats aggregation and client/owner filtering logic.
     """
+    admin = _crear_admin()
     # 1. Setup entities
     agente1 = controller.registrar_agente(
         nombre="Agente1",
@@ -254,15 +275,17 @@ def test_dashboard_statistics():
     )
     prop1 = controller.registrar_propiedad(
         direccion="Urquiza 1540",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=owner1.id,
+        tipo_operacion="Alquiler",
     )
     prop2 = controller.registrar_propiedad(
         direccion="Pellegrini 2200",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Abasto",
         id_propietario=owner2.id,
+        tipo_operacion="Alquiler",
     )
 
     # Assign agents
@@ -301,7 +324,7 @@ def test_dashboard_statistics():
     )
 
     # Generate payouts for the period
-    controller.generar_liquidaciones_mes("2026-08")
+    controller.generar_liquidaciones_mes("2026-08", id_agente_solicitante=admin.id)
 
     # Recheck stats: Payout pendiente to owners (c1 paid, so owner1 has payout pending)
     # Rent: 40k, Comm: 10% -> 4k, Net payout: 36k

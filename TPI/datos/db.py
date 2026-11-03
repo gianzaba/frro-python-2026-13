@@ -34,16 +34,15 @@ from business.entities import (  # noqa: E402
     InscripcionVisita as InscripcionVisitaBO,
     Reclamo as ReclamoBO,
     AuditLog as AuditLogBO,
+    TIPOS_INMUEBLE,
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 SQLITE_DB_PATH = os.path.join(PROJECT_DIR, "tpi_inmobiliaria.db").replace("\\", "/")
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql://postgres:admin@localhost:5432/tpi_inmobiliaria",
-)
+# Sin DATABASE_URL se usa SQLite local; para PostgreSQL definir la URL en el .env
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{SQLITE_DB_PATH}")
 
 # Connect to database with sqlite fallback
 try:
@@ -52,7 +51,7 @@ try:
     with engine.connect() as conn:
         pass
 except Exception as e:
-    print(f"Warning: PostgreSQL failed ({e}). Falling back to SQLite.")
+    print(f"Warning: la base configurada falló ({e}). Usando SQLite local.")
     engine = create_engine(f"sqlite:///{SQLITE_DB_PATH}")
 
 
@@ -134,6 +133,7 @@ class PropiedadTable(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     direccion = Column(String(200), nullable=False)
     tipo = Column(String(50), nullable=False)
+    tipo_operacion = Column(String(20), default="Alquiler", nullable=False)
     zona = Column(String(100), nullable=False)
     estado = Column(
         String(50), default="disponible", nullable=False
@@ -331,8 +331,53 @@ class AuditLogTable(Base):
     agente = relationship("AgenteTable", foreign_keys=[id_agente])
 
 
-
 # --- Database Schema Creation ---
+
+
+def inferir_tipo_inmueble(direccion: str) -> str:
+    """Deduce el tipo de inmueble a partir de la descripción (solo para migrar datos legados)."""
+    texto = (direccion or "").lower()
+    reglas = (
+        ("Local", ("local",)),
+        ("Oficina", ("oficina",)),
+        ("Terreno", ("terreno", "lote")),
+        ("Casa", ("casa", "residencia", "chalet")),
+    )
+    for tipo, palabras in reglas:
+        if any(p in texto for p in palabras):
+            return tipo
+    return "Departamento"
+
+
+def _migrar_tipo_operacion_propiedad():
+    """
+    Migra bases anteriores donde propiedad.tipo guardaba la operación (Alquiler/Venta):
+    crea propiedad.tipo_operacion y deja en propiedad.tipo el tipo de inmueble real.
+    """
+    from sqlalchemy import text
+
+    with engine.begin() as conn:
+        conn.execute(text(
+            "ALTER TABLE propiedad ADD COLUMN tipo_operacion VARCHAR(20) NOT NULL DEFAULT 'Alquiler'"
+        ))
+        filas = conn.execute(text("SELECT id, direccion, tipo FROM propiedad")).fetchall()
+        for id_prop, direccion, tipo_legado in filas:
+            ultimo = conn.execute(text(
+                "SELECT tipo_contrato FROM contrato WHERE id_propiedad = :i "
+                "AND estado IN ('activo', 'finalizado') ORDER BY nro_contrato DESC LIMIT 1"
+            ), {"i": id_prop}).fetchone()
+            if ultimo:
+                operacion = "Venta" if str(ultimo[0]).lower() == "compraventa" else "Alquiler"
+            elif str(tipo_legado).lower() == "venta":
+                operacion = "Venta"
+            else:
+                operacion = "Alquiler"
+            nuevo_tipo = tipo_legado
+            if str(tipo_legado).capitalize() not in TIPOS_INMUEBLE:
+                nuevo_tipo = inferir_tipo_inmueble(direccion)
+            conn.execute(text(
+                "UPDATE propiedad SET tipo = :t, tipo_operacion = :o WHERE id = :i"
+            ), {"t": nuevo_tipo, "o": operacion, "i": id_prop})
 
 
 def init_db(reset: bool = False):
@@ -436,6 +481,11 @@ def init_db(reset: bool = False):
             if "id_agente" not in cols_pr:
                 needs_recreate = True
 
+        if not needs_recreate and "propiedad" in existing_tables:
+            cols_pp = [c["name"] for c in inspector.get_columns("propiedad")]
+            if "tipo_operacion" not in cols_pp:
+                _migrar_tipo_operacion_propiedad()
+
         if needs_recreate:
             recreate_all()
         else:
@@ -519,6 +569,7 @@ def to_bo_propiedad(db_obj: Optional[PropiedadTable]) -> Optional[PropiedadBO]:
         id=db_obj.id,
         direccion=db_obj.direccion,
         tipo=db_obj.tipo,
+        tipo_operacion=getattr(db_obj, "tipo_operacion", None) or "Alquiler",
         zona=db_obj.zona,
         estado=db_obj.estado,
         id_propietario=db_obj.id_propietario,
@@ -681,7 +732,6 @@ def to_bo_audit_log(obj: Optional[AuditLogTable]) -> Optional[AuditLogBO]:
         accion=obj.accion,
         descripcion=obj.descripcion,
     )
-
 
 
 # --- Data Access API ---
@@ -1023,6 +1073,7 @@ def save_propiedad(bo: PropiedadBO) -> PropiedadBO:
             if db_obj:
                 db_obj.direccion = bo.direccion
                 db_obj.tipo = bo.tipo
+                db_obj.tipo_operacion = bo.tipo_operacion
                 db_obj.zona = bo.zona
                 db_obj.estado = bo.estado
                 db_obj.id_propietario = bo.id_propietario
@@ -1031,6 +1082,7 @@ def save_propiedad(bo: PropiedadBO) -> PropiedadBO:
             db_obj = PropiedadTable(
                 direccion=bo.direccion,
                 tipo=bo.tipo,
+                tipo_operacion=bo.tipo_operacion,
                 zona=bo.zona,
                 estado=bo.estado,
                 id_propietario=bo.id_propietario,
@@ -1071,12 +1123,12 @@ def list_propiedades_by_agente(id_agente: int) -> List[PropiedadBO]:
             )
             .all()
         )
-        
+
         # Obtener las propiedades de esas asignaciones
         propiedad_ids = [asig.id_propiedad for asig in asignaciones]
         if not propiedad_ids:
             return []
-        
+
         objs = db.query(PropiedadTable).filter(PropiedadTable.id.in_(propiedad_ids)).all()
         return [to_bo_propiedad(o) for o in objs]
     finally:
@@ -1851,4 +1903,3 @@ def delete_inscripcion_visita(id_inscripcion: int) -> bool:
         return False
     finally:
         db.close()
-

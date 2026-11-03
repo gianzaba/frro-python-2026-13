@@ -38,8 +38,7 @@ def setup_base_finance_data():
         "Laura", "Inquilina", "laura.inquilina@gmail.com", "DNI", "33333333", "Rioja 800", "3415550003"
     )
     prop = controller.registrar_propiedad(
-        "Bv. Oroño 1200, Rosario", "Alquiler", "Centro", propietario.id
-    )
+        "Bv. Oroño 1200, Rosario", "Departamento", "Centro", propietario.id, tipo_operacion="Alquiler")
     controller.asignar_agente_a_propiedad(admin.id, prop.id, datetime.now())
     contrato = controller.solicitar_contrato(
         cliente.id, admin.id, prop.id, monto=150000.0, comision_porcentaje=10.0, tipo_contrato="Alquiler"

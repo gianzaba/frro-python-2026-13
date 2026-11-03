@@ -226,3 +226,12 @@ El sistema está concebido para digitalizar y automatizar todas las actividades 
 12. **RN-12 (Cartera Propia por Agente):** Cada agente comercial estándar visualiza y gestiona exclusivamente sus propios clientes y propietarios registrados. El Administrador conserva vista global.
 13. **RN-13 (Cancelación Concurrente de Solicitudes):** Al firmarse una solicitud de contrato sobre un inmueble, cualquier otra solicitud pendiente en estado `solicitado` para esa misma propiedad pasa automáticamente a estado `cancelado` con registro de auditoría.
 14. **RN-14 (Traspaso de Titularidad tras Venta):** Cuando una propiedad vendida pasa a ser administrada nuevamente, el sistema permite traspasar la titularidad al comprador (incorporándolo como Propietario si no lo era), archivando el contrato anterior como `finalizado` y reactivando la propiedad como `disponible`.
+
+---
+
+## Anexo: ampliaciones de implementación
+
+- **Tipo de inmueble vs. operación:** el catálogo distingue el tipo (Casa, Departamento, Local, Terreno, Oficina) de la operación (Alquiler / Venta). Un contrato debe coincidir con la operación del inmueble.
+- **Estados del contrato:** además de `solicitado`, `activo` y `finalizado`, existen `pendiente_aprobacion`, `aprobado` y `rechazado` por la decisión del propietario. Mientras no esté firmado, el contrato es editable. Los alquileres activos se cierran con *Finalizar Contrato* y el inmueble vuelve a `disponible`.
+- **PDF:** `/finanzas/boleta/<nro>/<mes>/pdf` y `/reclamos/<id>/presupuesto/pdf`.
+- **Agenda global:** `/visitas`.

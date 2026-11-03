@@ -2,6 +2,11 @@ from datetime import date, datetime
 from typing import Optional
 
 
+# Constantes de dominio (inmutables)
+TIPOS_INMUEBLE = ("Casa", "Departamento", "Local", "Terreno", "Oficina")
+TIPOS_OPERACION = ("Alquiler", "Venta")
+
+
 class Persona:
     def __init__(
         self,
@@ -132,10 +137,12 @@ class Propiedad:
         estado: str = "disponible",
         id_propietario: int = 0,
         fecha_disponibilidad: Optional[date] = None,
+        tipo_operacion: str = "Alquiler",
     ):
         self.id = id
         self.direccion = direccion
         self.tipo = tipo
+        self.tipo_operacion = tipo_operacion
         self.zona = zona
         self.estado = estado
         self.id_propietario = id_propietario
@@ -381,4 +388,3 @@ class AuditLog:
         self.id_entidad = id_entidad
         self.accion = accion
         self.descripcion = descripcion
-

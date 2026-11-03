@@ -295,6 +295,9 @@
         <a href="{{ url_for('views.reclamos_dashboard') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Volver
         </a>
+        <a href="{{ url_for('views.reclamo_presupuesto_pdf', id_reclamo=reclamo.id) }}" class="btn btn-primary" target="_blank">
+            <i class="bi bi-file-earmark-pdf-fill"></i> Descargar PDF
+        </a>
         <button type="button" class="btn btn-primary" onclick="window.print()">
             <i class="bi bi-printer-fill"></i> Imprimir / Guardar en PDF
         </button>

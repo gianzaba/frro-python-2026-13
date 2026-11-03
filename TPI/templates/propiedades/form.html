@@ -26,11 +26,21 @@
             </div>
             
             <div class="form-group">
-                <label for="tipo"><i class="bi bi-tag"></i> Tipo de Operación</label>
+                <label for="tipo"><i class="bi bi-building"></i> Tipo de Inmueble</label>
                 <select id="tipo" name="tipo" required>
                     <option value="" disabled selected>Selecciona una opción</option>
-                    <option value="Alquiler">Alquiler</option>
-                    <option value="Venta">Venta</option>
+                    {% for t in tipos_inmueble %}
+                    <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="tipo_operacion"><i class="bi bi-tag"></i> Tipo de Operación</label>
+                <select id="tipo_operacion" name="tipo_operacion" required>
+                    {% for o in tipos_operacion %}
+                    <option value="{{ o }}">{{ o }}</option>
+                    {% endfor %}
                 </select>
             </div>
             
@@ -39,6 +49,11 @@
                 <input type="text" id="zona" name="zona" placeholder="Ej: Centro / Pichincha / Echesortu" required>
             </div>
             
+            <div class="form-group">
+                <label for="fecha_disponibilidad"><i class="bi bi-calendar-check"></i> Fecha de Disponibilidad</label>
+                <input type="date" id="fecha_disponibilidad" name="fecha_disponibilidad" value="{{ hoy }}" required>
+            </div>
+
             <div class="form-group form-group-full">
                 <label for="id_propietario"><i class="bi bi-person-badge"></i> Propietario Asociado</label>
                 {% if propietarios %}

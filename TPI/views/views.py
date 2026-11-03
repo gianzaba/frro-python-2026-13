@@ -1,5 +1,7 @@
 from flask import (
     Blueprint,
+    current_app,
+    send_from_directory,
     render_template,
     redirect,
     url_for,
@@ -13,11 +15,36 @@ from functools import wraps
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
+from views.documentos_pdf import generar_boleta_pdf, generar_presupuesto_pdf
 
 # Import Business Controller
 import business.controller as controller
 
 views_blueprint = Blueprint("views", __name__)
+
+EXTENSIONES_PERMITIDAS = ("pdf", "png", "jpg", "jpeg")
+
+
+def guardar_adjunto(campo: str, subcarpeta: str = ""):
+    """
+    Guarda un archivo adjunto del formulario fuera de /static (no es público) validando
+    el formato (PDF, PNG o JPG). Devuelve la ruta relativa o None si no se adjuntó nada.
+    """
+    archivo = request.files.get(campo)
+    if not archivo or not archivo.filename:
+        return None
+    nombre = secure_filename(archivo.filename)
+    extension = nombre.rsplit(".", 1)[-1].lower() if "." in nombre else ""
+    if extension not in EXTENSIONES_PERMITIDAS:
+        raise ValueError(
+            "Formato de archivo no permitido. Solo se aceptan PDF, PNG o JPG."
+        )
+    carpeta = os.path.join(current_app.root_path, "uploads", subcarpeta)
+    os.makedirs(carpeta, exist_ok=True)
+    nombre_final = f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}_{campo}_{nombre}"
+    archivo.save(os.path.join(carpeta, nombre_final))
+    partes = ["uploads"] + ([subcarpeta] if subcarpeta else []) + [nombre_final]
+    return "/".join(partes)
 
 # --- Authentication Decorator ---
 
@@ -78,6 +105,26 @@ def not_found_error(error):
     return render_template("errors/404.html"), 404
 
 
+@views_blueprint.app_errorhandler(413)
+def archivo_demasiado_grande(error):
+    flash("El archivo supera el tamaño máximo permitido (10 MB).", "danger")
+    return redirect(request.referrer or url_for("views.dashboard"))
+
+
+@views_blueprint.app_errorhandler(500)
+def internal_error(error):
+    return render_template("errors/500.html"), 500
+
+
+@views_blueprint.route("/uploads/<path:nombre_archivo>")
+@login_required
+def descargar_adjunto(nombre_archivo: str):
+    """Entrega adjuntos (comprobantes, documentación) solo a usuarios autenticados."""
+    return send_from_directory(
+        os.path.join(current_app.root_path, "uploads"), nombre_archivo
+    )
+
+
 # --- Authentication Routes ---
 
 
@@ -119,7 +166,7 @@ def logout():
 def audit_logs():
     agente_id = session.get("agente_id")
     logs = controller.listar_logs_auditoria(agente_id)
-    
+
     enriched_logs = []
     for log in logs:
         agente = controller.obtener_agente(log.id_agente) if log.id_agente else None
@@ -127,14 +174,13 @@ def audit_logs():
             "log": log,
             "agente": agente
         })
-        
+
     return render_template("admin/audit_logs.html", logs=enriched_logs)
 
 
 @views_blueprint.route("/visitas/inscripciones/<int:id_inscripcion>/cancelar", methods=["POST"])
 @login_required
 def inscripcion_cancelar(id_inscripcion: int):
-    id_agenda = request.form.get("id_agenda", type=int)
     id_propiedad = request.form.get("id_propiedad", type=int)
     id_agente_solicitante = session.get("agente_id")
     try:
@@ -142,7 +188,7 @@ def inscripcion_cancelar(id_inscripcion: int):
         flash("Inscripción de visita cancelada exitosamente y cupo liberado.", "success")
     except ValueError as e:
         flash(str(e), "danger")
-        
+
     if id_propiedad:
         return redirect(url_for("views.propiedad_visitas", id_propiedad=id_propiedad))
     return redirect(url_for("views.propiedades_list"))
@@ -266,12 +312,24 @@ def propiedad_crear():
     if request.method == "POST":
         direccion = request.form.get("direccion", "").strip()
         tipo = request.form.get("tipo", "")
+        tipo_operacion = request.form.get("tipo_operacion", "")
         zona = request.form.get("zona", "").strip()
         id_propietario = request.form.get("id_propietario", type=int)
+        fecha_disp_str = request.form.get("fecha_disponibilidad", "").strip()
 
         try:
+            fecha_disponibilidad = (
+                datetime.strptime(fecha_disp_str, "%Y-%m-%d").date()
+                if fecha_disp_str
+                else None
+            )
             controller.registrar_propiedad(
-                direccion, tipo, zona, id_propietario
+                direccion,
+                tipo,
+                zona,
+                id_propietario,
+                fecha_disponibilidad=fecha_disponibilidad,
+                tipo_operacion=tipo_operacion,
             )
             flash("Propiedad registrada exitosamente.", "success")
             return redirect(url_for("views.propiedades_list"))
@@ -279,7 +337,11 @@ def propiedad_crear():
             flash(str(e), "danger")
 
     return render_template(
-        "propiedades/form.html", propietarios=propietarios
+        "propiedades/form.html",
+        propietarios=propietarios,
+        tipos_inmueble=controller.listar_tipos_inmueble(),
+        tipos_operacion=controller.listar_tipos_operacion(),
+        hoy=datetime.now().strftime("%Y-%m-%d"),
     )
 
 
@@ -287,7 +349,7 @@ def propiedad_crear():
 @login_required
 def propiedad_detalle(id_propiedad: int):
     agente_id = session.get("agente_id")
-    
+
     # Verificar si el agente tiene permiso para acceder a esta propiedad
     if not controller.puede_acceder_propiedad(agente_id, id_propiedad):
         flash(
@@ -295,7 +357,7 @@ def propiedad_detalle(id_propiedad: int):
             "danger",
         )
         return redirect(url_for("views.propiedades_list"))
-    
+
     p = controller.obtener_propiedad(id_propiedad)
     if not p:
         abort(404)
@@ -368,7 +430,7 @@ def propiedad_traspasar_titularidad(id_propiedad: int):
 @login_required
 def propiedad_asignar(id_propiedad: int):
     agente_id = session.get("agente_id")
-    
+
     # Solo admin puede asignar agentes
     if not controller.es_administrador(agente_id):
         flash(
@@ -376,7 +438,7 @@ def propiedad_asignar(id_propiedad: int):
             "danger",
         )
         return redirect(url_for("views.propiedades_list"))
-    
+
     p = controller.obtener_propiedad(id_propiedad)
     if not p:
         abort(404)
@@ -414,11 +476,23 @@ def propiedad_asignar(id_propiedad: int):
 # --- Visitas & Agenda Routes ---
 
 
+@views_blueprint.route("/visitas")
+@login_required
+def visitas_list():
+    agendas = controller.listar_todas_las_agendas_con_metricas(
+        id_agente=session.get("agente_id")
+    )
+    return render_template(
+        "propiedades/visitas_global.html",
+        agendas=agendas,
+    )
+
+
 @views_blueprint.route("/propiedades/<int:id_propiedad>/visitas")
 @login_required
 def propiedad_visitas(id_propiedad: int):
     agente_id = session.get("agente_id")
-    
+
     # Verificar si el agente tiene permiso para acceder a esta propiedad
     if not controller.puede_acceder_propiedad(agente_id, id_propiedad):
         flash(
@@ -426,7 +500,7 @@ def propiedad_visitas(id_propiedad: int):
             "danger",
         )
         return redirect(url_for("views.propiedades_list"))
-    
+
     p = controller.obtener_propiedad(id_propiedad)
     if not p:
         abort(404)
@@ -686,37 +760,10 @@ def contrato_crear():
         recibos_sueldo_detalle = request.form.get("recibos_sueldo_detalle", "").strip()
         garantias_detalle = request.form.get("garantias_detalle", "").strip()
 
-        # Manejo de archivo adjunto
-        file = request.files.get("documento_respaldo")
-        ruta_documento = None
-        if file and file.filename:
-            filename = secure_filename(file.filename)
-            upload_dir = os.path.join("static", "uploads")
-            os.makedirs(upload_dir, exist_ok=True)
-            filepath = os.path.join(
-                upload_dir, f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
-            )
-            file.save(filepath)
-            ruta_documento = filepath
-
-        def guardar_adjunto(nombre_campo):
-            adjunto = request.files.get(nombre_campo)
-            if not adjunto or not adjunto.filename:
-                return None
-            filename = secure_filename(adjunto.filename)
-            upload_dir = os.path.join("static", "uploads")
-            os.makedirs(upload_dir, exist_ok=True)
-            filepath = os.path.join(
-                upload_dir,
-                f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_campo}_{filename}",
-            )
-            adjunto.save(filepath)
-            return filepath
-
-        ruta_recibos = guardar_adjunto("recibos_sueldo")
-        ruta_garantias = guardar_adjunto("garantias")
-
         try:
+            ruta_documento = guardar_adjunto("documento_respaldo", "contratos")
+            ruta_recibos = guardar_adjunto("recibos_sueldo", "contratos")
+            ruta_garantias = guardar_adjunto("garantias", "contratos")
             controller.solicitar_contrato(
                 id_cliente,
                 id_agente,
@@ -763,6 +810,23 @@ def contrato_firmar(nro_contrato: int):
 
 
 @views_blueprint.route(
+    "/contratos/<int:nro_contrato>/finalizar", methods=["POST"]
+)
+@login_required
+def contrato_finalizar(nro_contrato: int):
+    try:
+        controller.finalizar_contrato(
+            nro_contrato, id_agente_solicitante=session.get("agente_id")
+        )
+        flash("Contrato finalizado. El inmueble volvió a estar disponible.", "success")
+    except PermissionError as e:
+        abort(403, description=str(e))
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("views.contrato_detalle", nro_contrato=nro_contrato))
+
+
+@views_blueprint.route(
     "/contratos/<int:nro_contrato>/decision-propietario", methods=["POST"]
 )
 @login_required
@@ -776,7 +840,11 @@ def contrato_decision_propietario(nro_contrato: int):
         controller.decidir_contrato_propietario(
             nro_contrato, decision == "aprobar", observaciones
         )
-        mensaje = "Oferta aprobada por el propietario." if decision == "aprobar" else "Oferta rechazada por el propietario."
+        mensaje = (
+            "Oferta aprobada por el propietario."
+            if decision == "aprobar"
+            else "Oferta rechazada por el propietario."
+        )
         flash(mensaje, "success" if decision == "aprobar" else "warning")
     except ValueError as e:
         flash(str(e), "danger")
@@ -921,7 +989,7 @@ def finanzas_dashboard():
     for c in contratos:
         if c.estado == "activo":
             prop = controller.obtener_propiedad(c.id_propiedad)
-            if prop and prop.tipo.lower() == "alquiler":
+            if prop and c.tipo_contrato.lower() == "alquiler":
                 cliente = controller.obtener_cliente(c.id_cliente)
                 active_lease_contratos.append(
                     {"contrato": c, "cliente": cliente, "propiedad": prop}
@@ -985,20 +1053,8 @@ def pago_inquilino_crear():
         else None
     )
 
-    # Manejo de comprobante adjunto
-    file = request.files.get("comprobante")
-    ruta_comprobante = None
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        upload_dir = os.path.join("static", "uploads", "comprobantes")
-        os.makedirs(upload_dir, exist_ok=True)
-        filepath = os.path.join(
-            upload_dir, f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
-        )
-        file.save(filepath)
-        ruta_comprobante = filepath
-
     try:
+        ruta_comprobante = guardar_adjunto("comprobante", "comprobantes")
         pago = controller.registrar_pago_inquilino(
             nro_contrato=nro_contrato,
             mes=mes,
@@ -1028,10 +1084,35 @@ def pago_inquilino_crear():
 def boleta_alquiler(nro_contrato: int, mes: str):
     try:
         datos_boleta = controller.obtener_datos_boleta_alquiler(nro_contrato, mes)
+        if not controller.puede_acceder_contrato(
+            session.get("agente_id"), datos_boleta["contrato"]
+        ):
+            abort(403)
         return render_template("finanzas/boleta.html", **datos_boleta)
     except ValueError as e:
         flash(str(e), "danger")
         return redirect(url_for("views.finanzas_dashboard"))
+
+
+@views_blueprint.route("/finanzas/boleta/<int:nro_contrato>/<string:mes>/pdf")
+@login_required
+def boleta_alquiler_pdf(nro_contrato: int, mes: str):
+    try:
+        datos_boleta = controller.obtener_datos_boleta_alquiler(nro_contrato, mes)
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(url_for("views.finanzas_dashboard"))
+    if not controller.puede_acceder_contrato(
+        session.get("agente_id"), datos_boleta["contrato"]
+    ):
+        abort(403)
+    return Response(
+        generar_boleta_pdf(datos_boleta),
+        mimetype="application/pdf",
+        headers={
+            "Content-Disposition": f"inline; filename=boleta_{nro_contrato}_{mes}.pdf"
+        },
+    )
 
 
 @views_blueprint.route("/finanzas/liquidar", methods=["POST"])
@@ -1329,6 +1410,26 @@ def reclamo_presupuesto_informe(id_reclamo: int):
         return redirect(url_for("views.reclamos_dashboard"))
 
 
+@views_blueprint.route("/reclamos/<int:id_reclamo>/presupuesto/pdf")
+@login_required
+def reclamo_presupuesto_pdf(id_reclamo: int):
+    try:
+        detalles = controller.obtener_detalle_reclamo(id_reclamo)
+    except ValueError:
+        abort(404)
+    if not controller.puede_acceder_contrato(
+        session.get("agente_id"), detalles["contrato"]
+    ):
+        abort(403)
+    return Response(
+        generar_presupuesto_pdf(detalles),
+        mimetype="application/pdf",
+        headers={
+            "Content-Disposition": f"inline; filename=presupuesto_{id_reclamo}.pdf"
+        },
+    )
+
+
 # --- Agentes Management Routes (Admin only) ---
 
 
@@ -1370,6 +1471,7 @@ def agente_crear():
                 domicilio=domicilio,
                 telefono=telefono,
                 rol=rol,
+                id_agente_solicitante=session.get("agente_id"),
             )
             flash(
                 f"Agente {agente.nombre_completo} ({agente.rol}) registrado exitosamente.",

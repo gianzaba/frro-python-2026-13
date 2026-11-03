@@ -123,13 +123,20 @@ def seed_large_dataset():
     agentes_pool = list(agentes_map.values())
     propiedades_creadas = []
 
-    for idx, (dir_p, tipo_p, zona_p, id_prop, f_disp) in enumerate(propiedades_catalogo):
+    for idx, (dir_p, operacion_p, zona_p, id_prop, f_disp) in enumerate(propiedades_catalogo):
         # Buscar si ya existe por dirección
         existentes = [p for p in db.list_propiedades() if p.direccion == dir_p]
         if existentes:
             prop = existentes[0]
         else:
-            prop = controller.registrar_propiedad(dir_p, tipo_p, zona_p, id_prop, fecha_disponibilidad=f_disp)
+            prop = controller.registrar_propiedad(
+                dir_p,
+                db.inferir_tipo_inmueble(dir_p),
+                zona_p,
+                id_prop,
+                fecha_disponibilidad=f_disp,
+                tipo_operacion=operacion_p,
+            )
             agente_asig = agentes_pool[idx % len(agentes_pool)]
             controller.asignar_agente_a_propiedad(agente_asig.id, prop.id, desde=datetime.now() - timedelta(days=30))
             print(f" [+] Propiedad registrada: {prop.direccion} (Asignada a {agente_asig.nombre})")
@@ -178,7 +185,7 @@ def seed_large_dataset():
     if c6_firmado:
         contratos_firmados.append(c6_firmado)
 
-    c7_firmado = crear_y_firmar(7, 5, 230000.0, 10.0, 3.5, "Alquiler")
+    c7_firmado = crear_y_firmar(7, 4, 230000.0, 10.0, 3.5, "Alquiler")
     if c7_firmado:
         contratos_firmados.append(c7_firmado)
 

@@ -33,7 +33,9 @@ def test_recargo_mora_calculo_y_registro_pago():
         "Lucas", "Inquilino", "lucas@gmail.com", "DNI", "33333333", "Urquiza 800", "3415550003"
     )
     propiedad = controller.registrar_propiedad(
-        "Cordoba 1500, Rosario", "Alquiler", "Centro", prop.id, fecha_disponibilidad=date(2026, 1, 1)
+        "Cordoba 1500, Rosario", "Departamento", "Centro", prop.id,
+        fecha_disponibilidad=date(2026, 1, 1),
+        tipo_operacion="Alquiler",
     )
     controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime(2026, 1, 1, 9, 0))
     contrato = controller.solicitar_contrato(
@@ -84,8 +86,7 @@ def test_obtener_datos_boleta_alquiler():
         "Martin", "Inquilino", "martin@gmail.com", "DNI", "66666666", "Rosario", "3415553333"
     )
     propiedad = controller.registrar_propiedad(
-        "San Martin 1200", "Alquiler", "Centro", prop.id
-    )
+        "San Martin 1200", "Departamento", "Centro", prop.id, tipo_operacion="Alquiler")
     controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime(2026, 1, 1, 8, 0))
     contrato = controller.solicitar_contrato(
         cliente.id, agente.id, propiedad.id, monto=150000.0, tipo_contrato="Alquiler"
@@ -112,15 +113,21 @@ def test_analisis_propiedades_inactivas():
     )
     # Propiedad 1: 100 días vacante (Crítico)
     p1 = controller.registrar_propiedad(
-        "Pellegrini 2000", "Venta", "Centro", prop.id, fecha_disponibilidad=date.today() - timedelta(days=100)
+        "Pellegrini 2000", "Departamento", "Centro", prop.id,
+        fecha_disponibilidad=date.today() - timedelta(days=100),
+        tipo_operacion="Venta",
     )
     # Propiedad 2: 40 días vacante (Moderado)
     p2 = controller.registrar_propiedad(
-        "Oroño 500", "Alquiler", "Pichincha", prop.id, fecha_disponibilidad=date.today() - timedelta(days=40)
+        "Oroño 500", "Departamento", "Pichincha", prop.id,
+        fecha_disponibilidad=date.today() - timedelta(days=40),
+        tipo_operacion="Alquiler",
     )
     # Propiedad 3: 10 días vacante (Bajo)
     p3 = controller.registrar_propiedad(
-        "España 300", "Alquiler", "Centro", prop.id, fecha_disponibilidad=date.today() - timedelta(days=10)
+        "España 300", "Departamento", "Centro", prop.id,
+        fecha_disponibilidad=date.today() - timedelta(days=10),
+        tipo_operacion="Alquiler",
     )
 
     analisis = controller.obtener_analisis_propiedades_inactivas()
@@ -151,8 +158,7 @@ def test_agenda_visitas_y_control_cupos():
         "Gustavo", "Propietario", "gustavo@gmail.com", "DNI", "99999999", "Rosario", "3415556666"
     )
     propiedad = controller.registrar_propiedad(
-        "Alvear 800", "Venta", "Centro", prop.id
-    )
+        "Alvear 800", "Departamento", "Centro", prop.id, tipo_operacion="Venta")
 
     # 1. Crear agenda con cupo de 2 personas
     fecha_visita = datetime.now() + timedelta(days=2)
@@ -232,8 +238,7 @@ def test_rutas_web_nuevas_funcionalidades():
         "Cliente", "Test", "clientetest@gmail.com", "DNI", "30000000", "Rosario", "3415550000"
     )
     propiedad = controller.registrar_propiedad(
-        "Rioja 2000", "Alquiler", "Centro", prop.id
-    )
+        "Rioja 2000", "Departamento", "Centro", prop.id, tipo_operacion="Alquiler")
     controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime(2026, 1, 1, 9, 0))
     contrato = controller.solicitar_contrato(
         cliente.id, agente.id, propiedad.id, monto=120000.0, tipo_contrato="Alquiler"
@@ -275,19 +280,20 @@ def test_audit_logs_flow():
     )
     prop = controller.registrar_propietario("O", "O", "o@gmail.com", "DNI", "99999993", "R", "341")
     cliente = controller.registrar_cliente("C", "C", "c@gmail.com", "DNI", "99999994", "R", "341")
-    propiedad = controller.registrar_propiedad("Direccion 1", "Alquiler", "Centro", prop.id)
-    
+    propiedad = controller.registrar_propiedad("Direccion 1", "Departamento",
+                                               "Centro", prop.id, tipo_operacion="Alquiler")
+
     controller.asignar_agente_a_propiedad(admin.id, propiedad.id, datetime.now())
     contrato = controller.solicitar_contrato(cliente.id, admin.id, propiedad.id, monto=50000.0)
-    
+
     # Sign contract with admin agent
     controller.firmar_contrato(contrato.nro_contrato, id_agente_solicitante=admin.id)
-    
+
     # Register payment
     controller.registrar_pago_inquilino(
         contrato.nro_contrato, "2026-08", 50000.0, fecha_pago=date(2026, 8, 5), id_agente_solicitante=admin.id
     )
-    
+
     # Verify logs exist
     logs = controller.listar_logs_auditoria(admin.id)
     assert len(logs) >= 2
@@ -295,7 +301,7 @@ def test_audit_logs_flow():
     assert logs[0].entidad == "PagoInquilino"
     assert logs[0].accion == "RegistrarPago"
     assert "registró el pago" in logs[0].descripcion
-    
+
     # The previous log should be the contract signing
     assert logs[1].entidad == "Contrato"
     assert logs[1].accion == "Firmar"
@@ -314,8 +320,8 @@ def test_cancelar_inscripcion_visita_flow():
         "A", "A", "a@inmogestion.com", "pass", "20-91", "MAT-A1", "DNI", "91", "R", "341", "Estándar"
     )
     prop = controller.registrar_propietario("O", "O", "o@gmail.com", "DNI", "92", "R", "341")
-    propiedad = controller.registrar_propiedad("Dir", "Venta", "Sur", prop.id)
-    
+    propiedad = controller.registrar_propiedad("Dir", "Departamento", "Sur", prop.id, tipo_operacion="Venta")
+
     agenda = controller.crear_agenda_visita(
         id_propiedad=propiedad.id,
         id_agente=agente.id,
@@ -323,7 +329,7 @@ def test_cancelar_inscripcion_visita_flow():
         duracion_minutos=30,
         cupo_maximo=1
     )
-    
+
     # Register visitor to fill cupo
     insc = controller.inscribir_visitante_a_turno(
         id_agenda=agenda.id,
@@ -331,15 +337,15 @@ def test_cancelar_inscripcion_visita_flow():
         telefono_visitante="12345",
         email_visitante="v1@test.com"
     )
-    
+
     agenda_full = controller.obtener_agenda_con_inscriptos(agenda.id)
     assert agenda_full["agenda"].estado == "completo"
     assert agenda_full["total_inscriptos"] == 1
-    
+
     # Cancel inscription
     success = controller.cancelar_inscripcion_visita(insc.id, id_agente_solicitante=agente.id)
     assert success is True
-    
+
     # Agenda should return to "disponible" status
     agenda_after = controller.obtener_agenda_con_inscriptos(agenda.id)
     assert agenda_after["agenda"].estado == "disponible"
@@ -356,15 +362,15 @@ def test_obtener_contratos_por_vencer_flow():
     )
     prop = controller.registrar_propietario("O", "O", "o2@gmail.com", "DNI", "922", "R", "341")
     cliente = controller.registrar_cliente("C", "C", "c2@gmail.com", "DNI", "933", "R", "341")
-    propiedad = controller.registrar_propiedad("Dir", "Alquiler", "Centro", prop.id)
+    propiedad = controller.registrar_propiedad("Dir", "Departamento", "Centro", prop.id, tipo_operacion="Alquiler")
     controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime.now())
-    
+
     c = controller.solicitar_contrato(cliente.id, agente.id, propiedad.id, monto=100000.0)
-    
+
     # Lease starts 700 days ago (meaning it will expire in 30 days since total duration is 730 days)
     start_date = date.today() - timedelta(days=700)
     controller.firmar_contrato(c.nro_contrato, fecha_contrato=start_date)
-    
+
     por_vencer = controller.obtener_contratos_por_vencer(90)
     assert len(por_vencer) == 1
     assert por_vencer[0]["contrato"].nro_contrato == c.nro_contrato
@@ -379,40 +385,38 @@ def test_no_visita_cuando_no_disponible():
         "A", "A", "a3@inmogestion.com", "pass", "20-9111", "MAT-A111", "DNI", "9111", "R", "341", "Estándar"
     )
     prop = controller.registrar_propietario("O", "O", "o3@gmail.com", "DNI", "9222", "R", "341")
-    cliente = controller.registrar_cliente("C", "C", "c3@gmail.com", "DNI", "9333", "R", "341")
-    propiedad = controller.registrar_propiedad("Dir", "Alquiler", "Centro", prop.id)
+    controller.registrar_cliente("C", "C", "c3@gmail.com", "DNI", "9333", "R", "341")
+    propiedad = controller.registrar_propiedad("Dir", "Departamento", "Centro", prop.id, tipo_operacion="Alquiler")
     controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime.now())
-    
+
     # Case 1: Property is alquilada, try to create visit slot (should fail)
     propiedad.estado = "alquilada"
     db.save_propiedad(propiedad)
-    
+
     with pytest.raises(ValueError, match="Solo se pueden coordinar visitas"):
         controller.crear_agenda_visita(
             id_propiedad=propiedad.id,
             id_agente=agente.id,
             fecha_hora_visita=datetime.now() + timedelta(days=1)
         )
-        
+
     # Case 2: Create agenda while available, then rent property and try to register visitor (should fail)
     propiedad.estado = "disponible"
     db.save_propiedad(propiedad)
-    
+
     agenda = controller.crear_agenda_visita(
         id_propiedad=propiedad.id,
         id_agente=agente.id,
         fecha_hora_visita=datetime.now() + timedelta(days=1)
     )
-    
+
     # Rent property
     propiedad.estado = "alquilada"
     db.save_propiedad(propiedad)
-    
+
     with pytest.raises(ValueError, match="No se pueden inscribir visitantes"):
         controller.inscribir_visitante_a_turno(
             id_agenda=agenda.id,
             nombre_visitante="Visitante Test",
             telefono_visitante="12345"
         )
-
-

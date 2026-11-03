@@ -17,6 +17,14 @@
         </form>
         {% endif %}
 
+        {% if contrato.estado == 'activo' and contrato.tipo_contrato == 'Alquiler' %}
+        <form action="{{ url_for('views.contrato_finalizar', nro_contrato=contrato.nro_contrato) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Confirmás la finalización del contrato? El inmueble volverá a quedar disponible.');">
+            <button type="submit" class="btn btn-secondary">
+                <i class="bi bi-flag-fill"></i> Finalizar Contrato
+            </button>
+        </form>
+        {% endif %}
+
         <a href="{{ url_for('views.contrato_imprimir', nro_contrato=contrato.nro_contrato) }}" class="btn btn-primary" target="_blank">
             <i class="bi bi-printer-fill"></i> Vista de Impresión
         </a>
@@ -217,7 +225,7 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
         <h2><i class="bi bi-card-text" style="color: #818cf8;"></i> Cláusulas del Contrato</h2>
-        {% if contrato.estado == 'solicitado' %}
+        {% if contrato.estado in ['solicitado', 'pendiente_aprobacion', 'aprobado'] %}
         <button type="button" onclick="document.getElementById('form-nueva-clausula').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary btn-sm">
             <i class="bi bi-plus-lg"></i> Añadir Cláusula
         </button>
@@ -227,7 +235,7 @@
     </div>
     
     <p class="subtitle" style="margin-bottom: 1.4rem;">
-        {% if contrato.estado == 'solicitado' %}
+        {% if contrato.estado in ['solicitado', 'pendiente_aprobacion', 'aprobado'] %}
         Las cláusulas predeterminadas se han cargado automáticamente. Podés modificar, reordenar o eliminar cláusulas antes de firmar el acuerdo definitivo.
         {% else %}
         Las cláusulas fueron firmadas y han quedado registradas en el sistema de manera inmutable.
@@ -241,7 +249,7 @@
                 <h3 style="font-size: 0.98rem; color: #a5b4fc; display: flex; align-items: center; gap: 0.4rem;">
                     <i class="bi bi-bookmark-check-fill"></i> Cláusula {{ cl.orden }}: {{ cl.titulo }}
                 </h3>
-                {% if contrato.estado == 'solicitado' %}
+                {% if contrato.estado in ['solicitado', 'pendiente_aprobacion', 'aprobado'] %}
                 <div style="display: flex; gap: 0.4rem;">
                     <button type="button" onclick="toggleEditForm('{{ cl.id }}')" class="btn btn-secondary btn-sm">
                         <i class="bi bi-pencil-square"></i> Editar
@@ -260,7 +268,7 @@
                 {{ cl.contenido }}
             </p>
 
-            {% if contrato.estado == 'solicitado' %}
+            {% if contrato.estado in ['solicitado', 'pendiente_aprobacion', 'aprobado'] %}
             <!-- Formulario de edición (oculto por defecto) -->
             <form id="clausula-edit-{{ cl.id }}" action="{{ url_for('views.clausula_editar', nro_contrato=contrato.nro_contrato, id_clausula=cl.id) }}" method="POST" style="display: none; margin-top: 1rem; background: rgba(30, 41, 59, 0.7); padding: 1.1rem; border-radius: var(--border-radius-sm); border: 1px solid rgba(99, 102, 241, 0.3);">
                 <div class="form-group" style="margin-bottom: 0.8rem;">
@@ -282,7 +290,7 @@
     </div>
 
     <!-- Formulario para Añadir Nueva Cláusula -->
-    {% if contrato.estado == 'solicitado' %}
+    {% if contrato.estado in ['solicitado', 'pendiente_aprobacion', 'aprobado'] %}
     <div id="form-nueva-clausula" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--card-border);">
         <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.45rem;">
             <i class="bi bi-plus-circle-fill" style="color: #818cf8;"></i> Añadir Nueva Cláusula al Contrato

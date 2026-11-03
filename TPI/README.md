@@ -84,7 +84,16 @@ https://github.com/ginoagostinelli/TPI
 Sistema para un Estacionamiento situado en el centro de la ciudad de Rosario
 https://github.com/juanicampora/FRRO_SOPORTE_TPI
 
+## Puesta en marcha
 
+```bash
+python -m venv .venv && source .venv/bin/activate   # en Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env        # completar SECRET_KEY y datos bancarios
+python app.py               # http://127.0.0.1:5000
+python -m pytest            # tests
+flake8 .                    # estilo
+```
 
-
-
+Sin `DATABASE_URL` se usa SQLite local. Las bases anteriores se migran solas al iniciar
+(`propiedad.tipo_operacion`). Los adjuntos se guardan en `uploads/` y solo se descargan con sesión iniciada.

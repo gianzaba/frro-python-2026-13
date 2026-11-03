@@ -1,0 +1,11 @@
+Flask>=3.0,<4.0
+Werkzeug>=3.0,<4.0
+SQLAlchemy>=2.0,<3.0
+python-dotenv>=1.0
+reportlab>=4.0
+# Solo si se usa PostgreSQL (DATABASE_URL=postgresql://...)
+# psycopg2-binary>=2.9
+
+# Desarrollo y verificación
+pytest>=8.0
+flake8>=7.0

@@ -54,9 +54,10 @@ def test_clausulas_predeterminadas_alquiler_y_compraventa():
 
     prop_alquiler = controller.registrar_propiedad(
         direccion="Laprida 800, Rosario",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=propietario.id,
+        tipo_operacion="Alquiler",
     )
     controller.asignar_agente_a_propiedad(
         id_agente=agente.id, id_propiedad=prop_alquiler.id, desde=datetime.now()
@@ -91,9 +92,10 @@ def test_clausulas_predeterminadas_alquiler_y_compraventa():
     )
     prop_venta = controller.registrar_propiedad(
         direccion="Pellegrini 1200, Rosario",
-        tipo="Venta",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=propietario.id,
+        tipo_operacion="Venta",
     )
     controller.asignar_agente_a_propiedad(
         id_agente=agente_venta.id, id_propiedad=prop_venta.id, desde=datetime.now()
@@ -149,9 +151,10 @@ def test_crud_clausulas_y_modificacion_comision_agente():
     )
     prop = controller.registrar_propiedad(
         direccion="Entre Rios 300, Rosario",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=propietario.id,
+        tipo_operacion="Alquiler",
     )
     controller.asignar_agente_a_propiedad(
         id_agente=agente.id, id_propiedad=prop.id, desde=datetime.now()
@@ -240,9 +243,10 @@ def test_desglose_honorarios_e_inmutabilidad_al_firmar():
     )
     prop = controller.registrar_propiedad(
         direccion="San Lorenzo 1500, Rosario",
-        tipo="Alquiler",
+        tipo="Departamento",
         zona="Centro",
         id_propietario=propietario.id,
+        tipo_operacion="Alquiler",
     )
     controller.asignar_agente_a_propiedad(
         id_agente=agente.id, id_propiedad=prop.id, desde=datetime.now()

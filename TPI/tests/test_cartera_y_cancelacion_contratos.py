@@ -123,8 +123,7 @@ def test_cancelacion_automatica_solicitudes_al_firmar_contrato():
         "Dueño", "Inmueble", "duenio@test.com", "DNI", "55555555", "Casa 1", "555"
     )
     propiedad = controller.registrar_propiedad(
-        "Mitre 500, Rosario", "Alquiler", "Centro", propietario.id
-    )
+        "Mitre 500, Rosario", "Departamento", "Centro", propietario.id, tipo_operacion="Alquiler")
     controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime.now())
 
     # 2. Registrar 3 clientes interesados
@@ -133,9 +132,12 @@ def test_cancelacion_automatica_solicitudes_al_firmar_contrato():
     cliente3 = controller.registrar_cliente("Interesado", "Tres", "i3@test.com", "DNI", "90000003", "D3", "3")
 
     # 3. Crear 3 solicitudes de contrato sobre la misma propiedad
-    solicitud1 = controller.solicitar_contrato(cliente1.id, agente.id, propiedad.id, monto=150000.0, comision_porcentaje=10.0)
-    solicitud2 = controller.solicitar_contrato(cliente2.id, agente.id, propiedad.id, monto=150000.0, comision_porcentaje=10.0)
-    solicitud3 = controller.solicitar_contrato(cliente3.id, agente.id, propiedad.id, monto=150000.0, comision_porcentaje=10.0)
+    solicitud1 = controller.solicitar_contrato(
+        cliente1.id, agente.id, propiedad.id, monto=150000.0, comision_porcentaje=10.0)
+    solicitud2 = controller.solicitar_contrato(
+        cliente2.id, agente.id, propiedad.id, monto=150000.0, comision_porcentaje=10.0)
+    solicitud3 = controller.solicitar_contrato(
+        cliente3.id, agente.id, propiedad.id, monto=150000.0, comision_porcentaje=10.0)
 
     assert solicitud1.estado == "solicitado"
     assert solicitud2.estado == "solicitado"
@@ -161,7 +163,7 @@ def test_cancelacion_automatica_solicitudes_al_firmar_contrato():
 
     # 7. Verificar que los logs de auditoría contengan el registro de cancelación automática
     logs = controller.listar_logs_auditoria(agente.id)
-    descripciones = [l.descripcion for l in logs]
+    descripciones = [log.descripcion for log in logs]
     assert any("cancelada automáticamente" in d and f"#{solicitud1.nro_contrato}" in d for d in descripciones)
     assert any("cancelada automáticamente" in d and f"#{solicitud3.nro_contrato}" in d for d in descripciones)
 
@@ -193,13 +195,13 @@ def test_traspasar_titularidad_a_comprador_al_vender():
         "Vendedor", "Original", "vendedor@test.com", "DNI", "60000001", "Calle Vieja 123", "999"
     )
     propiedad = controller.registrar_propiedad(
-        "Av. Pellegrini 2000, Rosario", "Venta", "Centro", vendedor_original.id
-    )
+        "Av. Pellegrini 2000, Rosario", "Departamento", "Centro", vendedor_original.id, tipo_operacion="Venta")
     controller.asignar_agente_a_propiedad(agente.id, propiedad.id, datetime.now())
 
     # Comprador
     comprador_cliente = controller.registrar_cliente(
-        "Nicolás", "Comprador", "nicolas.compra@test.com", "DNI", "70000001", "Calle Nueva 456", "341111222", id_agente=agente.id
+        "Nicolás", "Comprador", "nicolas.compra@test.com", "DNI", "70000001",
+        "Calle Nueva 456", "341111222", id_agente=agente.id
     )
 
     # Crear contrato de compraventa
@@ -230,7 +232,7 @@ def test_traspasar_titularidad_a_comprador_al_vender():
 
     # Validaciones:
     assert prop_traspasada.estado == "disponible"
-    assert prop_traspasada.tipo == "Alquiler"
+    assert prop_traspasada.tipo_operacion == "Alquiler"
     assert prop_traspasada.id_propietario != vendedor_original.id
 
     # El comprador ahora figura como Propietario en la capa de datos y negocio
@@ -247,5 +249,5 @@ def test_traspasar_titularidad_a_comprador_al_vender():
 
     # Se registró el log de auditoría del traspaso
     logs = controller.listar_logs_auditoria(agente.id)
-    descripciones = [l.descripcion for l in logs]
+    descripciones = [log.descripcion for log in logs]
     assert any("traspasó la titularidad" in d and nuevo_propietario.nombre_completo in d for d in descripciones)
