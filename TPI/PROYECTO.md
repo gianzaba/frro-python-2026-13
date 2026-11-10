@@ -1,5 +1,8 @@
 # InmoGestión - Sistema de Gestión Inmobiliaria
 
+> 📚 **Documentación Centralizada del Proyecto:**  
+> La documentación exhaustiva, arquitectura, modelo de datos, catálogo de endpoints y puesta en marcha se encuentra disponible en la carpeta **[`docs/`](docs/README.md)**.
+
 Este archivo contiene la información detallada del proyecto de acuerdo a las especificaciones del Trabajo Práctico Integrador (TPI).
 
 ---

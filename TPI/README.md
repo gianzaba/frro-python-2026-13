@@ -1,5 +1,18 @@
-# Trabajo Práctico Integrador (TPI)
+# Trabajo Práctico Integrador (TPI) - InmoGestión B2B
 
+> 📚 **Documentación Completa y Unificada del TP:**  
+> Toda la documentación integral requerida para la entrega (Arquitectura en capas, Puesta en marcha, Base de datos, Tecnologías, Justificación del problema, Funcionalidades y Reglas de negocio) se encuentra centralizada en la carpeta **[`docs/`](docs/README.md)**.
+> - 📘 [Documento Maestro Consolidado](docs/README.md)
+> - 🏢 [1. El Problema y Objetivos](docs/01_problema_y_objetivos.md)
+> - 🏗️ [2. Arquitectura en Capas](docs/02_arquitectura_en_capas.md)
+> - 🛠️ [3. Tecnologías y Stack Técnico](docs/03_tecnologias_y_stack.md)
+> - 💾 [4. Base de Datos y Modelo de Dominio](docs/04_base_de_datos_y_modelo.md)
+> - 📱 [5. Catálogo Completo de Funcionalidades](docs/05_todas_las_funcionalidades.md)
+> - 📜 [6. Matriz de Reglas de Negocio](docs/06_reglas_de_negocio.md)
+> - 🚀 [7. Guía de Puesta en Marcha](docs/07_puesta_en_marcha.md)
+> - ✅ [8. Cumplimiento de Checklists Académicos](docs/08_checklists_y_calidad.md)
+
+---
 
 Condiciones del trabajo. Hacer un  sistema que cumpla las siguientes condiciones:
 	Que esté programado en Python.
