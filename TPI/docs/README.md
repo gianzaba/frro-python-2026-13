@@ -1,5 +1,5 @@
-# 📘 Documentación Integral del Trabajo Práctico Integrador (TPI)
-## **Sistema InmoGestión B2B - Gestión Inmobiliaria Integral en 3 Capas**
+# 📘 Documentación - Trabajo Práctico Integrador
+## **Sistema InmoGestión B2B - Gestión Inmobiliaria**
 
 ```text
 ========================================================================================
@@ -24,7 +24,6 @@ Patrón Arquitectónico: Arquitectura en 3 Capas Desacopladas
 6. [Matriz de Reglas de Negocio Implementadas](#6-matriz-de-reglas-de-negocio-implementadas)
 7. [Guía de Puesta en Marcha y Despliegue](#7-guía-de-puesta-en-marcha-y-despliegue)
 8. [Casos de Uso Principales y Catálogo de Endpoints](#8-casos-de-uso-principales-y-catálogo-de-endpoints)
-9. [Cumplimiento de Checklists Académicos UTN](#9-cumplimiento-de-checklists-académicos-utn)
 
 ---
 
@@ -360,12 +359,3 @@ sequenceDiagram
     Negocio->>Datos: update liquidación ('pagado')
     Negocio-->>Propietario: Envío automático de email de acreditación de renta
 ```
-
----
-
-## 9. Cumplimiento de Checklists Académicos UTN
-
-### Síntesis de Validación
-- **Arquitectura en 3 Capas (`checklist_capas.md`):** 100% de cumplimiento. La capa de presentación no toca la base ni modelos ORM; la capa de negocio no toca HTTP ni HTML y solo retorna objetos de dominio; la capa de datos concentra todas las consultas y usa SQLAlchemy ORM; el punto de arranque está en la raíz (`app.py`).
-- **Buenas Prácticas de Programación (`checklist_general.md`):** 100% de cumplimiento. Nomenclatura PEP 8 (`PascalCase` y `snake_case`), ausencia total de variables globales mutables, contraseñas protegidas criptográficamente con hash, manejo de errores HTTP 403 y 404, soporte multiusuario con sesiones independientes, diseño responsive adaptable y suite de pruebas unitarias automatizadas con Pytest.
-
