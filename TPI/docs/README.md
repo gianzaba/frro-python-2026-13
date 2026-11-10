@@ -1,18 +1,16 @@
-# 📘 Documentación - Trabajo Práctico Integrador
-## **Sistema InmoGestión B2B - Gestión Inmobiliaria**
+# InmoGestión B2B
 
-```text
-========================================================================================
-UNIVERSIDAD TECNOLÓGICA NACIONAL - FACULTAD REGIONAL ROSARIO
-Carrera: Ingeniería en Sistemas de Información / Tecnicatura Universitaria en Programación
-Cátedra: Soporte a la Gestión con Tecnologías de la Información / Programación en Python
-Ciclo Lectivo: 2026
-Proyecto: InmoGestión B2B - Sistema Web de Gestión Inmobiliaria
-Patrón Arquitectónico: Arquitectura en 3 Capas Desacopladas
-========================================================================================
-```
+Trabajo Práctico Integrador – Sistema de gestión inmobiliaria
 
----
+Universidad Tecnológica Nacional, Facultad Regional Rosario  
+Materia: Soporte a la Gestión de Datos con Programación Visual
+Ciclo lectivo 2026
+
+**Integrantes**
+
+- Zabaleta, Gianlucas (gianzabaleta05@gmail.com)
+- Peppino, Valentin (peppinovalentin@gmail.com)
+- Maggi, Lucas (lucasmaggi03@gmail.com)
 
 ## 📑 Índice General de la Documentación
 
@@ -27,31 +25,35 @@ Patrón Arquitectónico: Arquitectura en 3 Capas Desacopladas
 
 ---
 
-## 1. El Problema y la Justificación del Sistema
+## 1. El problema y la justificación del sistema
 
-### Contexto y Problemática del Negocio Inmobiliario Tradicional
-La gestión operativa, comercial y financiera de una inmobiliaria involucra una multiplicidad de actores interrelacionados: locadores (propietarios), locatarios y compradores (clientes), martilleros y corredores comerciales (agentes), y el equipo directivo.
+### Contexto
 
-En agencias tradicionales, la ausencia de un sistema informático centralizado y robusto genera graves obstáculos:
-1. **Desorganización de Visitas y Superposiciones:** La falta de control en agendas produce solapamientos horarios para los corredores y sobrecupo de personas en los inmuebles durante las exhibiciones.
-2. **Inmuebles Estancados y Falta de Diagnóstico de Vacancia:** Dificultad para cuantificar objetivamente cuántos días lleva un inmueble vacante en el mercado, imposibilitando negociar bajas de precio informadas con los propietarios.
-3. **Inseguridad Jurídica y Alteración Contractual:** Redacción informal de contratos con omisión de cláusulas esenciales y riesgo de modificación posterior de acuerdos una vez suscriptos.
-4. **Descontrol Financiero y Mora Inexacta:** Cobro de alquileres sin un cálculo estandarizado de mora diaria posterior al vencimiento (día 10), pérdida de comprobantes de pago y emisión deficiente de recibos.
-5. **Retrasos en Liquidaciones y Transferencias a Propietarios:** Dificultades para calcular masivamente la comisión retenida por la agencia y el saldo neto a transferir, con riesgo de liquidar fondos antes de que el inquilino haya cancelado su deuda.
-6. **Reclamos de Mantenimiento Desordenados:** Averías edilicias canalizadas informalmente, sin registro del contrato, sin nivel de urgencia ni presupuestos formales para someter a aprobación del propietario.
-7. **Ausencia de Aislamiento de Carteras Comerciales:** Fricciones internas entre corredores por falta de privacidad en sus clientes y propietarios asignados.
+Una inmobiliaria coordina a varias personas: los propietarios que ceden sus inmuebles, los clientes que alquilan o compran, los agentes que los atienden y la administración que cobra y liquida. Cuando todo esto se maneja con planillas y mensajes sueltos, aparecen errores que cuestan tiempo y dinero.
 
-### Solución: InmoGestión B2B
-**InmoGestión B2B** resuelve de manera integral estos desafíos digitalizando el ciclo completo de la inmobiliaria:
-- Captación y publicación de propiedades con asignación de corredores.
-- Análisis estratégico de vacancia e inactividad comercial con semaforización y planes automáticos de acción.
-- Agendas de visitas con cupos estrictos y validación de no superposición horaria.
-- Generación asistida de contratos con autoinyección de cláusulas legales y garantía de **inmutabilidad** tras la firma.
-- Circuito de evaluación crediticia y decisión formal del propietario (aprobado/rechazado).
-- Gestión integral de averías con emisión de presupuestos técnicos vectorizados en PDF (ReportLab).
-- Registro contable de cobros con cálculo automático de mora diaria al 0.2%, subida de comprobantes y emisión de boletas con código de barras `Code128`.
-- Liquidaciones masivas netas a propietarios condicionadas al cobro efectivo previo y confirmación de transferencias con avisos por correo.
-- Logs de auditoría inmutables y exportación contable en CSV.
+### Problemas que detectamos
+
+- Las visitas se superponen y no se controla cuánta gente entra a un inmueble.
+- No se sabe cuánto tiempo lleva una propiedad sin alquilarse, y eso dificulta pedirle al dueño una baja de precio.
+- Los contratos se pueden modificar después de firmados.
+- La mora se calcula a mano, los comprobantes se pierden y los recibos son informales.
+- Es fácil liquidarle al propietario antes de que el inquilino haya pagado.
+- Los reclamos de mantenimiento no quedan asociados a un contrato ni tienen presupuesto formal.
+- Un agente puede ver los clientes de otro.
+
+### Cómo los resuelve InmoGestión
+
+| Problema | Qué hace el sistema |
+| :--- | :--- |
+| Visitas superpuestas y sin límite | Cada turno tiene cupo máximo; al llenarse se bloquea. Un agente no puede tener dos visitas a la misma hora. |
+| Propiedades estancadas | Calcula los días desde la fecha de disponibilidad y los clasifica en cuatro niveles con una sugerencia de acción. |
+| Contratos modificados | Las cláusulas se cargan solas al crear el contrato y se pueden editar hasta la firma. Después ya no se puede cambiar nada. |
+| Mora y recibos | Calcula la mora automáticamente (0,2% por día desde el día 11), guarda el comprobante y emite la boleta en PDF. |
+| Liquidaciones anticipadas | Solo se liquida lo que el inquilino ya pagó, y el Administrador confirma la transferencia. |
+| Reclamos desordenados | Cada reclamo se asocia a un contrato activo, con urgencia, presupuesto y un PDF para el propietario. |
+| Falta de privacidad entre agentes | Cada agente ve solo sus clientes y propietarios; el Administrador ve todo. |
+
+Además, el sistema registra en una auditoría las acciones sensibles (firmas, pagos, cancelaciones) y permite exportar los cobros y las liquidaciones a CSV.
 
 ---
 
@@ -95,19 +97,21 @@ flowchart TD
 
 ## 3. Tecnologías y Stack Técnico
 
-| Área | Tecnología | Versión | Justificación |
+| Capa | Tecnología | Versión | Uso en el proyecto |
 | :--- | :--- | :--- | :--- |
-| **Lenguaje Core** | **Python** | 3.10+ | Lenguaje multiplataforma estándar de la cátedra con soporte para orientación a objetos pura, decoradores y tipado opcional. |
-| **Framework Web** | **Flask** | 3.1.x | Microframework web desacoplado y liviano con Blueprints modulares, facilitando el cumplimiento de la arquitectura en capas. |
-| **Motor de Plantillas** | **Jinja2** | 3.1.x | Herencia de plantillas (`layout.html`), macros reutilizables y protección automática contra inyecciones XSS. |
-| **ORM de Persistencia** | **SQLAlchemy** | 2.0.x | ORM declarativo con mapeo polimórfico de herencia (`polymorphic_on`), transaccionalidad segura y prevención de inyecciones SQL. |
-| **Base de Datos Local** | **SQLite3** | Embebida | Base relacional local "cero configuración" contenida en `tpi_inmobiliaria.db` para portabilidad inmediata en la corrección. |
-| **Base de Datos Externa** | **PostgreSQL** | 14+ | Soporte de producción para alta concurrencia multiusuario mediante driver `psycopg2`. |
-| **Seguridad Criptográfica** | **Werkzeug Security**| 3.1.x | Algoritmo criptográfico `pbkdf2:sha256` con salt dinámico para hashing irreversible de claves. |
-| **Generación de PDFs** | **ReportLab** | 5.1.x | Maquetado vectorial de boletas de alquiler con código de barras `Code128` y presupuestos de reparación descargables en PDF. |
-| **Configuración** | **python-dotenv** | 1.2.x | Desacoplamiento de credenciales y variables de entorno mediante archivo `.env`. |
-| **Testing Automatizado** | **Pytest** | 9.x | Suite de tests unitarios y de integración para validar reglas de negocio, integridad financiera y flujos web. |
-| **Calidad de Código** | **Flake8** | 7.x | Linter estático que valida el cumplimiento estricto del estándar de estilo **PEP 8**. |
+| Lenguaje | Python | 3.10 o superior | Todo el backend, los tests y los scripts de carga de datos |
+| Servidor web | Flask | 3.x | Rutas, sesión, formularios, manejo de errores |
+| Plantillas | Jinja2 | 3.x | Páginas HTML con herencia (`layout.html`) |
+| Acceso a datos | SQLAlchemy | 2.x | Modelos, consultas y migración de la base |
+| Base de datos | SQLite / PostgreSQL | – | SQLite por defecto; PostgreSQL con `DATABASE_URL` |
+| Seguridad | Werkzeug | 3.x | Hash de contraseñas y nombres de archivo seguros |
+| Configuración | python-dotenv | 1.x | Lectura del archivo `.env` |
+| PDF | ReportLab | 4.x | Boleta de cobro y presupuesto de reclamos |
+| Correo | `smtplib` y `email` | Biblioteca estándar | Alertas de mora y aviso de transferencia |
+| Interfaz | HTML, CSS propio, JavaScript | – | Pantallas, tablas y filtros |
+| Librerías web | DataTables, jQuery, Select2, Bootstrap Icons | DataTables 1.13.6, Icons 1.11.3 | Tablas con búsqueda, selectores y íconos |
+| Tests | pytest | 8 o superior | 56 tests automáticos |
+| Estilo | flake8 | 7.x | Revisión del código según PEP 8 |
 
 ---
 
@@ -162,98 +166,56 @@ erDiagram
 
 ## 5. Catálogo Completo de Funcionalidades y Módulos
 
-### 1. Autenticación y Control de Roles (RBAC)
-- Login seguro con validación de hash irreversible (`pbkdf2:sha256`).
-- Protección de endpoints con decoradores `@login_required` y `@admin_required`.
-- Páginas estilizadas para errores `403 Forbidden` y `404 Not Found`.
+**Usuarios y roles.** Hay dos roles: Administrador y Agente. El Agente trabaja con sus propias propiedades, clientes y contratos. El Administrador ve todo y es el único que liquida, exporta, gestiona agentes y consulta la auditoría. Las rutas se protegen con los decoradores `login_required` y `admin_required`, y los permisos críticos se vuelven a validar en el controlador.
 
-### 2. Dashboard Ejecutivo con KPIs en Tiempo Real
-- Contadores dinámicos de propiedades por estado (*Disponibles, Alquiladas, Vendidas*).
-- Cartera de clientes y contratos vigentes.
-- Métricas financieras del período: recaudación cobrada vs. pendiente, porcentaje de eficiencia de cobro y alertas de morosidad.
+**Panel principal.** Muestra propiedades por estado, clientes y propietarios, contratos vigentes y la recaudación del mes (cobrado, pendiente y porcentaje).
 
-### 3. Catálogo de Propiedades y Asignación Comercial
-- Catálogo con filtros cruzados por estado, tipo de inmueble, tipo de operación y zona.
-- Ficha técnica completa de la propiedad con historial de agentes y contratos.
-- Asignación flexible de agentes comerciales (un agente puede administrar múltiples propiedades simultáneamente).
+**Propiedades.** Catálogo con filtros por estado, tipo, zona y propietario. Cada ficha muestra el historial de agentes asignados y de contratos. Al reasignar una propiedad se cierra la asignación anterior.
 
-### 4. Análisis Estratégico de Inactividad y Vacancia
-- Mide los días exactos transcurridos desde la fecha de disponibilidad:
-  $$\text{Días en Oferta} = \text{Fecha Actual} - \text{Fecha de Disponibilidad}$$
-- **Semaforización comercial:**
-  - 🟢 **Bajo ($\le 30$ días):** Comercialización saludable. Plan: mantener precio.
-  - 🟡 **Moderado ($31 - 60$ días):** Interés moderado. Plan: reforzar publicidad y evaluar baja del 5%.
-  - 🟠 **Alto ($61 - 90$ días):** Inactividad prolongada. Plan: reunión con dueño para reducir valor un 10%.
-  - 🔴 **Crítico ($> 90$ días):** Propiedad estancada. Plan: reducción obligada del 15% o replanteo de destino.
+**Vacancia.** Calcula los días transcurridos desde la fecha de disponibilidad y los clasifica: hasta 30 días (bajo), 31 a 60 (moderado), 61 a 90 (alto) y más de 90 (crítico), con una sugerencia de acción para cada nivel (por ejemplo, bajar el precio 5%, 10% o 15%).
 
-### 5. Agenda de Visitas con Control Estricto de Cupos
-- Programación de turnos con duración y cupo máximo de personas.
-- **Validación de no superposición:** rechaza visitas que se solapen en la agenda del mismo agente.
-- **Control de aforo restrictivo:** al alcanzar el cupo máximo el turno cambia a `completo` e impide inscripciones adicionales.
+**Visitas.** Cada turno tiene duración y cupo máximo. Al llenarse queda en `completo` y no admite más inscripciones. Un agente no puede tener dos visitas en el mismo horario. La agenda general está en `/visitas`.
 
-### 6. Aislamiento de Cartera por Agente
-- Los agentes comerciales estándar solo visualizan y operan con los clientes y propietarios que ellos mismos registraron.
-- Los administradores conservan acceso y supervisión global sobre toda la cartera.
+**Contratos.** Al solicitarlos se cargan cláusulas base (6 para alquiler y 5 para compraventa) que se pueden editar mientras el contrato no esté firmado. También se pueden adjuntar garantías y recibos de sueldo. El propietario aprueba o rechaza la oferta. Al firmar, el contrato pasa a `activo`, la propiedad a `alquilada` o `vendida`, y no se puede modificar nada más. Las otras solicitudes pendientes sobre ese inmueble se cancelan solas. Un alquiler activo se cierra con "Finalizar" y el inmueble vuelve a quedar disponible. Hay una vista de impresión para firmar en papel.
 
-### 7. Contratos Legales, Cláusulas e Inmutabilidad
-- Solicitud de contratos con autoinyección de cláusulas base (6 cláusulas para locación y 5 para compraventa).
-- Carga de garantías y recibos de sueldo con soporte de adjuntos digitales.
-- Editor de cláusulas y comisiones habilitado únicamente en estado borrador (`solicitado`).
-- **Inmutabilidad absoluta tras la firma:** al pasar a `activo`, queda terminantemente prohibido modificar o suprimir cláusulas o comisiones.
-- Plantilla de impresión legal formal lista para firmas.
+**Reclamos.** Se cargan sobre un contrato activo, con rubro, urgencia y presupuesto estimado. El estado avanza de `pendiente` a `informado_propietario`, `en_reparacion` y `resuelto` o `desestimado`. El presupuesto se descarga como PDF para el propietario.
 
-### 8. Decisión del Propietario y Cancelación Concurrente
-- Circuito de evaluación donde el propietario registra su decisión (`aprobado`, `rechazado`, `pendiente`).
-- **Cancelación concurrente:** cuando se firma una solicitud sobre una propiedad, cualquier otra solicitud pendiente en borrador sobre ese inmueble pasa automáticamente a `cancelado` con asiento en auditoría.
+**Finanzas.**
+- Registro de cobros con comprobante adjunto (PDF, PNG o JPG). No se permiten dos pagos del mismo contrato y mes.
+- Mora: el vencimiento es el día 10. Desde el día 11 se suma 0,2% del alquiler por cada día de atraso (recargo = alquiler × 0,002 × días). Siempre se calcula automáticamente.
+- Boleta mensual en PDF con vencimientos, datos bancarios y código de barras.
+- Liquidación mensual al propietario: neto = alquiler cobrado − honorarios. Solo se liquida lo que el inquilino ya pagó. El Administrador confirma la transferencia y se avisa por correo al propietario.
+- Exportación de cobros y liquidaciones a CSV.
+- Alertas de mora por correo, con un control para no enviar dos veces el mismo día.
 
-### 9. Módulo de Reclamos y Presupuestos PDF para Propietarios
-- Registro de averías edilicias vinculadas al contrato activo (Plomería, Electricidad, Gas, etc.).
-- Ciclo de vida: `Pendiente` ➔ `Informado al Propietario` ➔ `En Reparación` ➔ `Resuelto` / `Desestimado`.
-- Emisión de presupuestos formales vectorizados en PDF con ReportLab listos para enviar al dueño para su conformidad.
+**Traspaso de titularidad.** Tras una venta, el inmueble se puede pasar al comprador, que se crea como propietario si no lo era.
 
-### 10. Finanzas, Mora Diaria al 0.2% y Boletas PDF
-- Registro de cobro de alquileres con soporte para comprobantes adjuntos (PDF/JPG/PNG).
-- **Vencimiento base al día 10:** los pagos posteriores calculan automáticamente los días exactos de atraso y un recargo diario del 0.2%:
-  $$\text{Recargo} = \text{Canon Base} \times 0.002 \times \text{Días de Atraso}$$
-- **Boleta mensual en PDF:** emisión de comprobante con código de barras `Code128`, desglose de vencimientos y datos bancarios de la inmobiliaria.
-- Prevención de duplicidad: rechaza registrar dos pagos para el mismo contrato y período.
-
-### 11. Liquidaciones a Propietarios y Transferencias
-- Generación masiva mensual de liquidaciones calculando automáticamente la comisión de la inmobiliaria y el saldo neto.
-- Condición estricta: requiere cobro previo del inquilino.
-- Confirmación de transferencia bancaria y notificación automática por email al propietario.
-- Exportación contable de cobros y liquidaciones en CSV para Excel.
-
-### 12. Traspaso de Titularidad tras Compraventa
-- Al volver a administrar una propiedad vendida, permite traspasar la titularidad al adquirente (creándolo como Propietario si no lo era), archivando el contrato previo y liberando el inmueble como disponible.
-
-### 13. Logs de Auditoría Inmutable
-- Panel de control exclusivo para Administradores que registra cronológicamente cada acción sensible (creación, firma, cancelación, pago, rechazo), con fecha/hora, agente interviniente y detalle del evento.
+**Auditoría.** Registro cronológico de las acciones sensibles, visible solo para el Administrador.
 
 ---
 
 ## 6. Matriz de Reglas de Negocio Implementadas
 
-| # | Regla de Negocio | Capa que la Valida | Comportamiento / Restricción Operativa |
-| :-: | :--- | :---: | :--- |
-| **RN-01** | **Disponibilidad para Contratos** | `business/controller.py` | Solo se puede solicitar o firmar un contrato sobre propiedades en estado `disponible`. |
-| **RN-02** | **Asignación Agente-Contrato** | `business/controller.py` | El agente que suscribe el contrato debe ser el comercial formalmente asignado a la propiedad. |
-| **RN-03** | **Multi-propiedad por Agente** | `business/controller.py` | Un agente comercial puede administrar simultáneamente múltiples propiedades sin límites. |
-| **RN-04** | **Inmutabilidad Contractual** | `business/controller.py` | Prohibido editar o borrar cláusulas o modificar honorarios en contratos en estado `activo`. |
-| **RN-05** | **Control Estricto de Cupos** | `business/controller.py` | Bloqueo automático de inscripciones cuando el cupo alcanza el máximo del turno. |
-| **RN-06** | **No Superposición de Visitas** | `business/controller.py` | Se rechaza la creación de visitas que solapen horarios de otra visita ya agendada para el agente. |
-| **RN-07** | **Visitas solo en Disponibles** | `business/controller.py` | Solo se pueden agendar visitas en inmuebles con estado `disponible`. |
-| **RN-08** | **Reclamos en Contratos Activos** | `business/controller.py` | No se admiten reclamos sobre contratos en borrador, finalizados o cancelados. |
-| **RN-09** | **Cálculo de Mora Diaria (0.2%)**| `business/controller.py` | Aplicación automática de tasa de mora del 0.2% por jornada sobre cánones abonados post día 10. |
-| **RN-10** | **Unicidad de Pago Mensual** | `business/controller.py` | Impide duplicar el cobro de alquiler para un mismo contrato y mismo período (`YYYY-MM`). |
-| **RN-11** | **Liquidación Previa al Pago** | `business/controller.py` | No se puede liquidar a un dueño si el inquilino no ha cancelado previamente su período. |
-| **RN-12** | **Control de Acceso y Roles (RBAC)**| `views/views.py` & `controller` | Las acciones financieras de egreso, gestión de agentes y auditoría exigen rol `Administrador`. |
-| **RN-13** | **Cifrado Criptográfico Obligatorio**| `business/controller.py` | Las contraseñas de todos los agentes se almacenan hasheadas con `pbkdf2:sha256`. |
-| **RN-14** | **Unicidad de Identificadores en DB**| `datos/db.py` | Email, DNI/Documento, CUIL y Matrícula Profesional deben ser únicos e irrepetibles en la base. |
-| **RN-15** | **Control Anti-Spam en Alertas** | `business/controller.py` | Evita reenviar alertas de mora duplicadas a un inquilino en la misma jornada. |
-| **RN-16** | **Aislamiento de Cartera Comercial**| `business/controller.py` | Cada agente comercial estándar solo visualiza y opera sus propios clientes y propietarios. |
-| **RN-17** | **Cancelación Concurrente** | `business/controller.py` | Al firmar un contrato, las demás solicitudes en borrador sobre ese inmueble pasan a `cancelado`. |
-| **RN-18** | **Traspaso de Titularidad tras Venta**| `business/controller.py` | Permite transferir el inmueble al comprador tras la venta, reactivando la propiedad como disponible. |
+| N.º | Regla | Dónde se controla |
+| :-: | :--- | :--- |
+| RN-01 | Solo se piden contratos o visitas sobre propiedades en estado `disponible`. | Controlador |
+| RN-02 | El agente que firma el contrato debe ser el asignado a la propiedad. | Controlador |
+| RN-03 | Un agente puede tener varias propiedades asignadas a la vez. | Controlador |
+| RN-04 | Un contrato firmado no admite cambios en cláusulas ni honorarios. | Controlador |
+| RN-05 | Un turno de visita no acepta inscripciones cuando alcanza su cupo. | Controlador |
+| RN-06 | Un agente no puede tener dos visitas superpuestas. | Controlador |
+| RN-07 | Solo se registran reclamos sobre contratos activos. | Controlador |
+| RN-08 | Pasado el día 10 se aplica una mora de 0,2% diario, calculada automáticamente. | Controlador |
+| RN-09 | No se registran dos cobros para el mismo contrato y mes. | Controlador |
+| RN-10 | No se liquida al propietario si el inquilino no pagó el período. | Controlador |
+| RN-11 | Liquidar, exportar y gestionar agentes es solo del Administrador. | Vistas y controlador |
+| RN-12 | Las contraseñas se guardan con hash, nunca en texto plano. | Controlador |
+| RN-13 | Email, documento, CUIL y matrícula no se pueden repetir. | Datos |
+| RN-14 | No se reenvía la misma alerta de mora a un inquilino en el mismo día. | Controlador |
+| RN-15 | Un agente estándar solo ve y opera sus propios clientes y propietarios. | Controlador |
+| RN-16 | Al firmar un contrato se cancelan las demás solicitudes pendientes sobre ese inmueble. | Controlador |
+| RN-17 | Tras una venta se puede traspasar el inmueble al comprador y reactivarlo. | Controlador |
+| RN-18 | Un contrato de alquiler solo se admite sobre un inmueble publicado para alquiler (y lo mismo para venta). | Controlador |
 
 ---
 
@@ -292,7 +254,7 @@ cp .env.example .env
 python app.py
 ```
 Acceder mediante navegador web a:  
-👉 **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
+**[http://127.0.0.1:5000](http://127.0.0.1:5000)**
 
 ### 5. Credenciales de Acceso Precargadas
 
